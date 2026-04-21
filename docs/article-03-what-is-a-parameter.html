@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is a Parameter? — Inside the Black Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 80px 24px 0;
+    animation: fadeUp 0.5s ease both 0.1s;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+  p      { margin-bottom: 20px; line-height: 1.75; }
+  strong { font-weight: 600; }
+  em     { font-style: italic; }
+
+  /* ── NETWORK SCHEMATIC ── */
+  .net-schematic {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px 0 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .net-box {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    flex-shrink: 0;
+  }
+  .net-box-label {
+    font-size: 0.56rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .net-box-body {
+    font-size: 0.68rem;
+    color: var(--terminal-accent);
+    margin-bottom: 4px;
+  }
+  .net-box-count {
+    font-size: 0.56rem;
+    color: var(--muted);
+  }
+  .net-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 0 10px;
+    flex-shrink: 0;
+  }
+  .net-conn-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .net-conn-line {
+    width: 48px;
+    height: 1px;
+    background: var(--border);
+    position: relative;
+  }
+  .net-conn-line::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: -3px;
+    border: 3px solid transparent;
+    border-left: 5px solid var(--border);
+  }
+  .net-conn-ids {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.56rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .net-total {
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--terminal-accent);
+    font-weight: 500;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── SCALE BAR ── */
+  .scale-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .scale-heading {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .scale-bar-wrap {
+    position: relative;
+    height: 56px;
+    margin: 0 12px;
+  }
+  .scale-track {
+    position: absolute;
+    top: 22px;
+    left: 0; right: 0;
+    height: 1px;
+    background: var(--border);
+  }
+  .scale-point {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .scale-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--terminal-accent);
+    margin-top: 18px;
+    flex-shrink: 0;
+  }
+  .scale-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.56rem;
+    color: var(--muted);
+    text-align: center;
+    position: absolute;
+    top: 32px;
+    white-space: nowrap;
+  }
+  .scale-label strong {
+    display: block;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 1px;
+  }
+  .scale-axis-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.54rem;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  /* ── COMPARE TABLE ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+  }
+  .compare-table th {
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--terminal-accent);
+    padding: 0 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table th:first-child { padding-left: 0; }
+  .compare-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .compare-table td:first-child {
+    padding-left: 0;
+    color: var(--text);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .val { color: var(--text); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p            { color: var(--muted); margin-bottom: 10px; }
+  .breaks p:last-child { margin-bottom: 0; }
+  .breaks strong       { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">03-what-is-a-parameter.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">03-what-is-a-parameter.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>03</span> &nbsp;·&nbsp; Foundations</div>
+  <h1>What is a Parameter?</h1>
+  <p class="lede">Everyone quotes the number. Almost nobody knows what's actually being counted.</p>
+
+  <h2>Why you keep hearing this word</h2>
+
+  <p>At some point you noticed that AI models get described by a number. GPT-3 had 175 billion of them. LLaMA 3 comes in 8 billion and 70 billion flavours. Someone on Twitter will tell you a 7B model running on your laptop is "almost as good" as something with ten times as many. The number in question is always parameters, and it's attached to model names the way megapixels used to be attached to cameras.</p>
+
+  <p>For a while in the 2000s, megapixels were the number. Camera manufacturers led with it. Consumers used it to compare. A 12-megapixel camera was assumed to be better than an 8-megapixel one. The logic wasn't entirely wrong — more megapixels does mean something real about resolution — but it obscured everything else that actually determines image quality: sensor size, lens optics, software processing. Megapixels were the easiest number to put on the box.</p>
+
+  <p>Parameter count is AI's megapixel moment. It means something real. It became the default shorthand because it's the most convenient single number to describe a model's capacity. And like megapixels, it tells you less than the people quoting it tend to imply.</p>
+
+  <h2>A parameter is a weight</h2>
+
+  <p>Strip away the marketing and a parameter is just a number inside the network — one of the learnable values that gets adjusted during training. In most contexts, parameters and weights mean the same thing, though technically parameters also include biases, which are small offset values added at each neuron.</p>
+
+  <p>In our house price model from the previous articles, every connection between neurons has a weight. The connection between "distance to centre" and the first hidden layer has a weight. The connection between that hidden layer and the output has a weight. Each of those is a parameter. Count every connection in the network and you have the parameter count.</p>
+
+  <p>A small network predicting house prices from four inputs might have a few hundred parameters. A large language model has billions — not because the basic unit is different, but because the network is vastly deeper and wider, with far more connections between far more neurons.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">parameter_count.diagram</span>
+    </div>
+    <div class="mac-body">
+
+      <!-- Network schematic -->
+      <div class="net-schematic">
+        <div class="net-box">
+          <div class="net-box-label">Input</div>
+          <div class="net-box-body">x₁ · x₂ · x₃ · x₄</div>
+          <div class="net-box-count">4 neurons</div>
+        </div>
+        <div class="net-connector">
+          <div class="net-conn-label">4 × 3 = 12 weights</div>
+          <div class="net-conn-line"></div>
+          <div class="net-conn-ids">w₁ … w₁₂</div>
+        </div>
+        <div class="net-box">
+          <div class="net-box-label">Hidden</div>
+          <div class="net-box-body">h₁ · h₂ · h₃</div>
+          <div class="net-box-count">3 neurons</div>
+        </div>
+        <div class="net-connector">
+          <div class="net-conn-label">3 × 1 = 3 weights</div>
+          <div class="net-conn-line"></div>
+          <div class="net-conn-ids">w₁₃ · w₁₄ · w₁₅</div>
+        </div>
+        <div class="net-box">
+          <div class="net-box-label">Output</div>
+          <div class="net-box-body">ŷ</div>
+          <div class="net-box-count">1 neuron</div>
+        </div>
+      </div>
+      <div class="net-total">Total: 15 parameters</div>
+
+      <!-- Scale bar -->
+      <div class="scale-section">
+        <div class="scale-heading">Orders of magnitude — log scale</div>
+        <div class="scale-bar-wrap">
+          <div class="scale-track"></div>
+          <!-- House model: 10^1, pos = 0% -->
+          <div class="scale-point" style="left: 0%">
+            <div class="scale-dot"></div>
+            <div class="scale-label"><strong>House model</strong>~15 params</div>
+          </div>
+          <!-- GPT-2: 117M ≈ 10^8.07, pos = (8.07-1)/(12-1) ≈ 64% -->
+          <div class="scale-point" style="left: 64%">
+            <div class="scale-dot"></div>
+            <div class="scale-label"><strong>GPT-2</strong>117M params</div>
+          </div>
+          <!-- GPT-4 scale: ~1T = 10^12, pos = 100% -->
+          <div class="scale-point" style="left: 100%">
+            <div class="scale-dot"></div>
+            <div class="scale-label"><strong>GPT-4 scale</strong>~1T params</div>
+          </div>
+        </div>
+        <div class="scale-axis-label">← log scale — each step is ×10 →</div>
+      </div>
+
+      <p class="table-caption" style="margin-top:20px">Every connection is a parameter. The same unit — one learned number — spans eleven orders of magnitude between a toy model and a frontier LLM.</p>
+    </div>
+  </div>
+
+  <h2>What parameters encode</h2>
+
+  <p>Before training, parameters are initialised randomly. They encode nothing — just noise. After training on millions of examples, they're different numbers, and those numbers encode something real.</p>
+
+  <p>What exactly? The patterns the model found in its training data. In the house model, the weight connecting "distance to centre" to the hidden layer ends up encoding something like: proximity to the centre correlates with higher price, and by roughly this much. That relationship wasn't programmed. It was extracted from data, compressed into a single number, and stored as a weight.</p>
+
+  <p>In a large language model the same logic applies at a scale that becomes genuinely hard to think about. The parameters of GPT-4 encode statistical patterns across an enormous fraction of human written text — the relationship between words, ideas, facts, styles, arguments. Not as a database of facts that can be looked up, but as a vast web of weighted connections that collectively produce plausible continuations of text. Everything the model "knows" lives in those numbers. There is nothing else.</p>
+
+  <div class="callout">
+    <strong>This is why deleting a model means deleting its weights.</strong> The architecture — the blueprint for how neurons connect — is just a structure. The parameters are the knowledge.
+  </div>
+
+  <h2>Parameters vs hyperparameters</h2>
+
+  <p>There is a second kind of number in machine learning that gets conflated with parameters: hyperparameters. They sound similar and they are both numbers that shape model behaviour, but they are fundamentally different things.</p>
+
+  <p>Parameters are learned. The model finds their values during training by adjusting them to reduce loss. Humans never set them directly. Hyperparameters are chosen. A human decides them before training begins and they stay fixed throughout. The learning rate from the previous article is a hyperparameter — it controls how large each weight update is, but it is not itself updated by the training process.</p>
+
+  <p>The distinction matters because when people say "a 70 billion parameter model," they are talking about learned parameters — the knowledge baked in through training — not the structural choices made before training started.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">params_vs_hyperparams.diagram</span>
+    </div>
+    <div class="mac-body">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Parameters</th>
+            <th>Hyperparameters</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Set by</td>
+            <td class="val">Training process</td>
+            <td class="val">Human, before training</td>
+          </tr>
+          <tr>
+            <td>Change during training</td>
+            <td class="val">Yes — continuously updated</td>
+            <td class="val">No — fixed throughout</td>
+          </tr>
+          <tr>
+            <td>Example</td>
+            <td class="val">Connection weight between neurons</td>
+            <td class="val">Learning rate</td>
+          </tr>
+          <tr>
+            <td>Example</td>
+            <td class="val">Bias values at each neuron</td>
+            <td class="val">Number of layers</td>
+          </tr>
+          <tr>
+            <td>Example</td>
+            <td class="val">Attention weights</td>
+            <td class="val">Batch size</td>
+          </tr>
+          <tr>
+            <td>What they encode</td>
+            <td class="val">Patterns learned from data</td>
+            <td class="val">Structural decisions about the model</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>Why scale matters — and what it cannot tell you</h2>
+
+  <p>More parameters means more capacity. A network with ten million parameters can encode more complex patterns than one with ten thousand. At the scale of large language models, the relationship between parameter count and capability is real — models with more parameters tend to perform better on a wide range of tasks, all else being equal.</p>
+
+  <p>But all else is rarely equal. Training data matters as much as parameter count, perhaps more. A 7 billion parameter model trained carefully on high-quality, well-curated data can outperform a 70 billion parameter model trained carelessly on noisy data. Architecture matters too — the specific way neurons are connected and how attention is implemented affects what a model can learn, not just how much. And training method matters: two models with identical parameter counts and identical data will behave differently depending on whether and how they were fine-tuned or aligned after pre-training.</p>
+
+  <p>Parameter count became the headline number because it is easy to measure and easy to compare. It tells you something real about capacity. It does not tell you about the quality of training, the composition of data, the architecture choices, or how the model behaves on any specific task. A camera with 108 megapixels and a cheap plastic lens will still produce worse photographs than one with 12 megapixels and excellent optics.</p>
+
+  <h2>Where this picture breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this framing</div>
+    <p><strong>No parameter encodes a discrete fact.</strong> The weight-as-knowledge framing is useful but it simplifies in ways worth naming. Knowledge is distributed across millions of weights simultaneously, and the same weight participates in encoding many different patterns at once. You cannot point to a single parameter and say "this one knows that Paris is the capital of France." It does not work that way.</p>
+    <p><strong>Parameter count says nothing about context window.</strong> How much text a model can hold in mind at once has a significant effect on what it can do in practice. Two models with the same parameter count can have very different context windows, and for many tasks the context window matters more than total parameter count.</p>
+    <p><strong>The megapixels analogy breaks down in one important direction.</strong> Unlike cameras, where the megapixel race has largely plateaued, the parameter race in AI is still live. The relationship between scale and capability has not yet hit a clear ceiling, and researchers continue to find that larger models develop qualitatively new capabilities that smaller models simply do not have — a phenomenon with no clean equivalent in consumer electronics.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="#">Attention: The Mechanism Behind Everything</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+</script>
+
+</body>
+</html>
