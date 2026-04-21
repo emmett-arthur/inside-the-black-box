@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q, K, V: The Lookup Table That Runs the World — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article { animation: fadeUp 0.5s ease both 0.1s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p            { margin-bottom: 20px; line-height: 1.75; }
+  a            { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  strong       { font-weight: 600; }
+  em           { font-style: italic; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE IT BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 10px; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+
+  /* ── QKV DIAGRAM ── */
+  .qkv-diagram { display: flex; align-items: center; gap: 0; font-family: 'IBM Plex Mono', monospace; }
+  .qkv-token { padding: 10px 16px; border: 2px solid var(--accent); border-radius: 8px; background: rgba(192,57,43,0.06); color: var(--accent); font-size: 0.8rem; font-weight: 500; margin-right: 24px; white-space: nowrap; }
+  .qkv-branches { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .qkv-branch { display: flex; align-items: center; gap: 10px; }
+  .qkv-line { width: 20px; height: 1px; background: var(--border); flex-shrink: 0; }
+  .qkv-box { flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; background: var(--card-bg); }
+  .qkv-box-label { font-size: 0.6rem; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .qkv-box-desc { font-size: 0.63rem; color: var(--muted); line-height: 1.4; }
+
+  /* ── BANK CONTEXT DIAGRAM ── */
+  .bank-panels { display: flex; gap: 20px; }
+  .bank-panel { flex: 1; }
+  .bank-panel-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .bank-sent { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; font-family: 'IBM Plex Mono', monospace; }
+  .b-tok { padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.65rem; color: var(--muted); background: var(--bg); }
+  .b-tok.active { border-color: var(--accent); color: var(--text); background: rgba(192,57,43,0.07); }
+  .bank-score { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 4px; }
+  .bank-score strong { color: var(--terminal-accent); }
+  .bank-value { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); border-left: 2px solid var(--terminal-accent); padding-left: 8px; }
+</style>
+</head>
+<body>
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">06-q-k-v-the-lookup-table.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">06-q-k-v-the-lookup-table.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>06</span> &nbsp;·&nbsp; Module 02 — Transformer Architecture</div>
+
+  <h1>Q, K, V: The Lookup Table That Runs the World</h1>
+
+  <p class="lede">Attention tells you what to look at. Q, K, and V are how it actually decides.</p>
+
+  <h2>The gap between what and how</h2>
+
+  <p>The previous article explained what attention does: every token looks at every other token, computes a score representing how relevant each one is, and blends the results into a richer representation. What it didn't explain is how those scores get computed. That's what Q, K, and V are for.</p>
+
+  <p>The letters stand for query, key, and value. They sound abstract, but the idea behind them is something you already understand intuitively. You do a version of it every time you search for something.</p>
+
+  <h2>A library with a twist</h2>
+
+  <p>Imagine walking into a library. You have a question in your head — say, you're trying to understand something about rivers. That question is your query. Every book on the shelf has a title and a set of subject tags — those are the keys. You scan the keys to find which books match your question. The books that match well get pulled off the shelf. What you actually read — the content inside — that's the value.</p>
+
+  <p>Query: what am I looking for? Key: what do I advertise that I contain? Value: what do I actually give you once you open me?</p>
+
+  <p>Attention works the same way. For every token in a sequence, the model generates all three: a query, a key, and a value. The attention score between two tokens is computed by matching one token's query against another token's key. The output is a weighted blend of values, where the weights are those scores.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">qkv_roles.diagram</span>
+    </div>
+    <div class="mac-body">
+      <div class="qkv-diagram">
+        <div class="qkv-token">"bank"</div>
+        <div class="qkv-branches">
+          <div class="qkv-branch">
+            <div class="qkv-line"></div>
+            <div class="qkv-box">
+              <div class="qkv-box-label">Q — Query</div>
+              <div class="qkv-box-desc">What am I looking for in other tokens?</div>
+            </div>
+          </div>
+          <div class="qkv-branch">
+            <div class="qkv-line"></div>
+            <div class="qkv-box">
+              <div class="qkv-box-label">K — Key</div>
+              <div class="qkv-box-desc">What do I advertise that I contain?</div>
+            </div>
+          </div>
+          <div class="qkv-branch">
+            <div class="qkv-line"></div>
+            <div class="qkv-box">
+              <div class="qkv-box-label">V — Value</div>
+              <div class="qkv-box-desc">What do I actually contribute when attended to?</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="table-caption" style="margin-top: 20px;">Every token generates all three simultaneously. The query goes out looking; the key broadcasts availability; the value is what gets returned.</p>
+    </div>
+  </div>
+
+  <h2>One word, two meanings</h2>
+
+  <p>Consider the word "bank." Even before the model has computed anything, it faces an immediate problem: bank as in a financial institution, or bank as in the edge of a river? The meaning is entirely dependent on context — and context, in a transformer, is exactly what Q, K, and V are designed to resolve.</p>
+
+  <p>"Bank" generates a key that effectively advertises its ambiguity — something like "I could be financial or geographical, and I'm waiting for context to tell me which." Other tokens in the sentence generate queries that reflect what they're looking for. The word "river" generates a query oriented toward geographical, physical things. The word "account" generates a query oriented toward financial things.</p>
+
+  <p>When "river"'s query meets "bank"'s key, the score is high — these two things are pointing at each other. When "account"'s query meets "bank"'s key, a different facet lights up. The score reflects how well the query and key align, which is just a way of asking: given what this token is looking for, how relevant is what that token is offering?</p>
+
+  <h2>How the score is actually computed</h2>
+
+  <p>The score between two tokens is calculated by taking their query and key vectors — which are just lists of numbers representing each token in the model's internal space — and measuring how much they point in the same direction. Two vectors pointing in the same direction produce a high score. Two vectors pointing away from each other produce a low score. Vectors at right angles to each other produce a score near zero.</p>
+
+  <p>You do not need to know the exact maths. What matters is the intuition: the score is a measure of alignment. A high score means the query and the key are a good match — this token is relevant to what the other token is looking for. A low score means they are not. In our "bank" example, "river" and "bank" produce a high score when the sentence is about geography. "Account" and "bank" produce a high score when the sentence is about finance. The same word, different scores, depending entirely on what else is in the sequence.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">bank_context.diagram</span>
+    </div>
+    <div class="mac-body">
+      <div class="bank-panels">
+        <div class="bank-panel">
+          <div class="bank-panel-label">Sentence 1 — geographical</div>
+          <div class="bank-sent">
+            <span class="b-tok">The</span>
+            <span class="b-tok active">river</span>
+            <span class="b-tok active">bank</span>
+            <span class="b-tok">was</span>
+            <span class="b-tok">steep.</span>
+          </div>
+          <div class="bank-score"><strong>river → bank: 0.81</strong></div>
+          <div class="bank-value">geographical meaning activated</div>
+        </div>
+        <div class="bank-panel">
+          <div class="bank-panel-label">Sentence 2 — financial</div>
+          <div class="bank-sent">
+            <span class="b-tok">She</span>
+            <span class="b-tok">checked</span>
+            <span class="b-tok">her</span>
+            <span class="b-tok active">bank</span>
+            <span class="b-tok active">account.</span>
+          </div>
+          <div class="bank-score"><strong>account → bank: 0.79</strong></div>
+          <div class="bank-value">financial meaning activated</div>
+        </div>
+      </div>
+      <p class="table-caption" style="margin-top: 20px;">Same word, same key — but different queries produce different scores and different values. Context shapes what each token contributes.</p>
+    </div>
+  </div>
+
+  <h2>Why query, key, and value are three separate things</h2>
+
+  <p>Here is the part that makes the whole system genuinely powerful. The key — what a token advertises — and the value — what it actually contributes — are not the same thing.</p>
+
+  <p>In the library analogy, the title on the spine of the book and the content inside the book are different things. The title gets you to the right book. What you read once you open it is something richer, more specific, more contextual.</p>
+
+  <p>"Bank" advertises ambiguity via its key: I could be either thing, context will decide. But its value — what it actually delivers to the tokens attending to it — is the resolved meaning. Next to "river," its value carries geographical, physical connotations. Next to "account," its value carries financial ones. The key is the same in both sentences. The value is different.</p>
+
+  <p>This separation is what lets the model handle the actual messiness of language. Without it, every word would have one fixed meaning regardless of context — and language does not work that way. With the key/value split, a token can advertise one thing and deliver another, which means what a word contributes to the tokens around it can shift depending on where it appears and what is attending to it. Combined with multi-head attention running several of these lookups in parallel, the model ends up with a representation of each token that is shaped by its full context — not a static dictionary definition, but a meaning that has been resolved by everything around it.</p>
+
+  <p>That is what makes transformers so much better at language than anything that came before. Not magic. Just a very well-designed lookup system, run billions of times.</p>
+
+  <h2>Where this picture breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this picture</div>
+    <p>The library analogy is useful but it implies a level of tidiness that does not exist in practice. Real query, key, and value vectors are not human-readable. They are lists of hundreds or thousands of numbers, and what they encode is not something you can inspect and label as "geographical meaning" or "financial meaning." Those interpretations are useful for building intuition — they are not literally what is stored.</p>
+    <p>The "same key, different value" framing also simplifies how the model actually works. In practice, keys are not entirely static either — they are generated by passing the token's embedding through a learned weight matrix, which means the key a token produces is already partially shaped by the training process. The clean separation between advertising and delivering is real, but messier than the analogy suggests.</p>
+    <p>Finally, Q, K, and V describe only the attention mechanism itself. The transformer has other components — <span class="term" data-def="A layer in the transformer that processes each token individually after attention has gathered context. Where attention does relational work, the feed-forward layer does per-token computation.">feed-forward layers</span>, <span class="term" data-def="A technique applied between layers that normalises activation values, keeping them in a stable range. Improves training stability and allows deeper networks to converge reliably.">layer normalisation</span>, <span class="term" data-def="A small addition to each token's representation that encodes its position in the sequence. Without it, attention would treat 'cat sat' and 'sat cat' identically.">positional encodings</span> — that this article has not touched. Attention is the heart of the transformer, but it does not work alone.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="article-07-why-transformers-beat-everything-before-them.html">Why Transformers Beat Everything Before Them</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+  initTerms();
+</script>
+
+</body>
+</html>

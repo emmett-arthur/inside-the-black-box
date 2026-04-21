@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attention: The Mechanism Behind Everything — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  /* Article-specific colour tokens */
+  :root {
+    --amber: #e8a838;
+    --green:  #2ecc71;
+  }
+
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article { animation: fadeUp 0.5s ease both 0.1s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p        { margin-bottom: 20px; line-height: 1.75; }
+  strong   { font-weight: 600; }
+  em       { font-style: italic; }
+
+  /* ── DATA TABLES ── */
+  .mac-body { overflow-x: auto; }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+  }
+  .data-table th {
+    text-align: left;
+    font-weight: 400;
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 14px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .data-table th:first-child { padding-left: 0; }
+  .data-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text);
+  }
+  .data-table td:first-child        { padding-left: 0; }
+  .data-table tr:last-child td      { border-bottom: none; }
+
+  .sig-high  { color: var(--accent); font-weight: 500; }
+  .sig-mid   { color: var(--amber); }
+  .sig-low   { color: var(--green); }
+
+  .severity-bar { display: flex; align-items: center; gap: 8px; }
+  .bar-track    { height: 6px; border-radius: 3px; background: var(--border); flex-shrink: 0; }
+  .bar-fill     { height: 6px; border-radius: 3px; }
+  .bar-high     { background: var(--accent); }
+  .bar-mid      { background: var(--amber); }
+  .bar-low      { background: var(--green); }
+
+  .verdict      { font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .verdict.high { color: var(--accent); }
+  .verdict.mid  { color: var(--amber); }
+  .verdict.low  { color: var(--green); }
+
+  /* ── FADING MEMORY DIAGRAM ── */
+  .fade-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0; font-family: 'IBM Plex Mono', monospace; }
+  .fade-tok { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.65rem; background: var(--card-bg); color: var(--text); white-space: nowrap; }
+  .fade-note { margin-top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem; color: var(--accent); border-left: 2px solid var(--accent); padding-left: 10px; }
+
+  .fade-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  /* ── ATTENTION SCORE DIAGRAM ── */
+  .attn-sentence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .attn-tok {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.65rem;
+    background: var(--card-bg);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .attn-tok.focus {
+    border-color: var(--accent);
+    background: rgba(192,57,43,0.07);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── MULTI-HEAD DIAGRAM ── */
+  .heads-grid { display: flex; gap: 16px; }
+  .head-panel { flex: 1; }
+  .head-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .head-label .hl { color: var(--accent); }
+  .head-tokens { display: flex; flex-wrap: wrap; gap: 4px; }
+  .h-tok { padding: 3px 6px; border: 1px solid var(--border); border-radius: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--muted); background: var(--bg); }
+  .h-tok.strong { border-color: var(--accent); color: var(--text); background: rgba(192,57,43,0.07); }
+  .h-tok.mid { border-color: var(--border); color: var(--text); }
+  .heads-merge { text-align: center; margin-top: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--terminal-accent); padding-top: 14px; border-top: 1px solid var(--border); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE IT BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 10px; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">05-attention-the-mechanism-behind-everything.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">05-attention-the-mechanism-behind-everything.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>05</span> &nbsp;·&nbsp; Module 02 — Transformer Architecture</div>
+
+  <h1>Attention: The Mechanism Behind Everything</h1>
+
+  <p class="lede">One idea separates modern AI from everything that came before it. Here is what attention actually does and why it mattered so much.</p>
+
+  <h2>The problem no one had solved</h2>
+
+  <p>Before transformers, the dominant approach to processing language was the recurrent neural network. An RNN reads a sequence one token at a time, left to right, maintaining a hidden state — a fixed-size bundle of numbers that carries information forward as it moves through the sequence. Each new token updates that bundle based on what came before.</p>
+
+  <p>The problem is that bundle has a fixed size. It has to compress everything the model has read so far into the same number of dimensions, regardless of how long the sequence is. Read ten tokens, the bundle carries ten tokens worth of context. Read a thousand tokens, it still has the same size — which means earlier information gets increasingly compressed, overwritten, and eventually lost.</p>
+
+  <p>This is the fading memory problem. By the time an RNN reaches the end of a long sentence, the beginning has been diluted across hundreds of updates. The model can still see the recent past clearly, but the distant past has become a blur.</p>
+
+  <!-- DIAGRAM 1: Fading Memory -->
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">fading_memory.diagram</span>
+    </div>
+    <div class="mac-body">
+      <div class="fade-label">fading&nbsp;&nbsp;←&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current →</div>
+      <div class="fade-row">
+        <div class="fade-tok" style="opacity:0.08">The</div>
+        <div class="fade-tok" style="opacity:0.1">trophy</div>
+        <div class="fade-tok" style="opacity:0.15">didn't</div>
+        <div class="fade-tok" style="opacity:0.2">fit</div>
+        <div class="fade-tok" style="opacity:0.25">in</div>
+        <div class="fade-tok" style="opacity:0.3">the</div>
+        <div class="fade-tok" style="opacity:0.45">suitcase</div>
+        <div class="fade-tok" style="opacity:0.7">because</div>
+        <div class="fade-tok" style="opacity:1.0">it</div>
+        <div class="fade-tok" style="opacity:1.0">was</div>
+        <div class="fade-tok" style="opacity:1.0">too</div>
+        <div class="fade-tok" style="opacity:1.0">big</div>
+      </div>
+      <div class="fade-note">"it" needs "trophy" — but it has nearly vanished.</div>
+      <p class="table-caption">An RNN reading left to right compresses earlier tokens into a fixed-size state. By the time it reaches "it", "trophy" has been diluted across every subsequent update.</p>
+    </div>
+  </div>
+
+  <h2>A single sentence that broke the old approach</h2>
+
+  <p>Consider this sentence: "The trophy didn't fit in the suitcase because it was too big."</p>
+
+  <p>What does "it" refer to? The trophy or the suitcase? You resolved this immediately and without effort. The trophy is too big to fit — so "it" refers to the trophy. The reasoning requires holding "trophy," "fit," "suitcase," and "too big" in mind simultaneously and reasoning about their relationships.</p>
+
+  <p>An RNN processing this sentence left to right will encounter "it" near the end, by which point "trophy" — the key word it needs — has been compressed through several state updates and is competing with everything else the model has read. Language is full of these long-range dependencies: pronouns referring to nouns several clauses back, verbs whose meaning depends on subjects introduced earlier, negations that flip the meaning of something stated further up the paragraph. For a model to truly understand text rather than approximate it, it needs to be able to connect any two positions in a sequence directly — regardless of the distance between them.</p>
+
+  <h2>The core idea: every token looks at every other token</h2>
+
+  <p>Attention solves the fading memory problem by abandoning sequential processing entirely. Instead of reading left to right and maintaining a running state, an attention mechanism allows every token in a sequence to look at every other token simultaneously and decide how much to weight each one.</p>
+
+  <p>When the model processes "it" in our sentence, attention doesn't force it to rely on whatever compressed memory has carried forward from the beginning. Instead, "it" can directly consult "trophy" — still fully present, not faded — and decide that it is the relevant word. The relationship is computed directly, not retrieved from a degraded memory.</p>
+
+  <h2>What an attention score actually is</h2>
+
+  <p>The result of this process is a number for every pair of tokens in the sequence: an attention score representing how much token A should attend to token B. Think of it as a rating from 0 to 1. A score close to 1 means "this relationship matters a lot." A score close to 0 means "mostly ignore this."</p>
+
+  <p>In our sentence, the model might compute scores from "it" to every other token and arrive at something like this: trophy scores 0.71, suitcase scores 0.18, big scores 0.07, everything else scores below 0.02. These scores don't have to be invented by hand — the model learns during training which patterns of attention are useful for predicting the next token correctly, and those patterns get baked into the weights.</p>
+
+  <p>Once the scores are computed, they are used to produce a weighted blend — that is, a mixture where each token contributes in proportion to its score. The output representation of "it" ends up being mostly shaped by "trophy," somewhat shaped by "suitcase," barely influenced by anything else. The scores are first adjusted so they all add up to 1 (a standard mathematical step that makes the blending stable), and then the blending happens. The result is a richer representation of "it" than the raw token alone could carry — one that already encodes the likely answer to the coreference question.</p>
+
+  <!-- DIAGRAM 2: Attention Scores -->
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">attention_scores.diagram</span>
+    </div>
+    <div class="mac-body">
+      <div class="attn-sentence">
+        <div class="attn-tok">The</div>
+        <div class="attn-tok">trophy</div>
+        <div class="attn-tok">didn't</div>
+        <div class="attn-tok">fit</div>
+        <div class="attn-tok">in</div>
+        <div class="attn-tok">the</div>
+        <div class="attn-tok">suitcase</div>
+        <div class="attn-tok">because</div>
+        <div class="attn-tok focus">it</div>
+        <div class="attn-tok">was</div>
+        <div class="attn-tok">too</div>
+        <div class="attn-tok">big</div>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Attention score (from "it")</th>
+            <th>Strength</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>trophy</td>
+            <td class="sig-high">0.71</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:80px"><div class="bar-fill bar-high" style="width:90%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict high">dominant</span></td>
+          </tr>
+          <tr>
+            <td>suitcase</td>
+            <td class="sig-mid">0.18</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:80px"><div class="bar-fill bar-mid" style="width:28%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict mid">moderate</span></td>
+          </tr>
+          <tr>
+            <td>big</td>
+            <td class="sig-low">0.07</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:80px"><div class="bar-fill bar-low" style="width:10%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict low">weak</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--muted)">everything else</td>
+            <td style="color:var(--muted)">&lt; 0.02</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:80px"><div class="bar-fill bar-low" style="width:2%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict low">noise</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="table-caption">"it" attends directly to "trophy" — no fading, no compression. The connection is computed fresh across the full sequence.</p>
+    </div>
+  </div>
+
+  <h2>Multi-head attention: several perspectives at once</h2>
+
+  <p>A single round of attention produces one perspective on the relationships in a sequence. But language carries many kinds of relationships simultaneously. In our sentence, "it" and "trophy" are linked by coreference — "it" refers back to "trophy." But there are also grammatical relationships (which word is the subject, which is the object), semantic relationships (trophy and suitcase are both physical objects that can contain or be contained), and proximity relationships (words close together often relate to each other). A single pass of attention cannot capture all of these at once.</p>
+
+  <p>Multi-head attention runs the attention mechanism several times in parallel — each run is called a head — with different learned parameters each time. Each head develops its own pattern of what to attend to. One head might specialise in tracking grammatical structure. Another might focus on which words refer to the same thing. A third might weight nearby words more heavily. Their outputs are then combined — merged together — into a single richer representation.</p>
+
+  <p>The model is not told what each head should learn. The specialisation emerges from training: each head finds the pattern that most reliably helps reduce prediction error on the training data.</p>
+
+  <!-- DIAGRAM 3: Multi-Head Attention -->
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">multi_head_attention.diagram</span>
+    </div>
+    <div class="mac-body">
+      <div class="heads-grid">
+        <!-- Head 1: Coreference -->
+        <div class="head-panel">
+          <div class="head-label">Head 1 — <span class="hl">coreference</span></div>
+          <div class="head-tokens">
+            <div class="h-tok">The</div>
+            <div class="h-tok strong">trophy</div>
+            <div class="h-tok">didn't</div>
+            <div class="h-tok">fit</div>
+            <div class="h-tok">in</div>
+            <div class="h-tok">the</div>
+            <div class="h-tok">suitcase</div>
+            <div class="h-tok">because</div>
+            <div class="h-tok strong">it</div>
+          </div>
+        </div>
+        <!-- Head 2: Grammar -->
+        <div class="head-panel">
+          <div class="head-label">Head 2 — <span class="hl">grammar</span></div>
+          <div class="head-tokens">
+            <div class="h-tok">The</div>
+            <div class="h-tok">trophy</div>
+            <div class="h-tok strong">didn't</div>
+            <div class="h-tok strong">fit</div>
+            <div class="h-tok">in</div>
+            <div class="h-tok">the</div>
+            <div class="h-tok">suitcase</div>
+            <div class="h-tok">because</div>
+            <div class="h-tok">it</div>
+          </div>
+        </div>
+        <!-- Head 3: Proximity -->
+        <div class="head-panel">
+          <div class="head-label">Head 3 — <span class="hl">proximity</span></div>
+          <div class="head-tokens">
+            <div class="h-tok">The</div>
+            <div class="h-tok">trophy</div>
+            <div class="h-tok">didn't</div>
+            <div class="h-tok">fit</div>
+            <div class="h-tok">in</div>
+            <div class="h-tok">the</div>
+            <div class="h-tok strong">suitcase</div>
+            <div class="h-tok strong">because</div>
+            <div class="h-tok strong">it</div>
+          </div>
+        </div>
+      </div>
+      <div class="heads-merge">→ combined representation</div>
+      <p class="table-caption">Multi-head attention runs in parallel. Each head learns a different pattern of what to attend to. Their outputs are merged into a single richer representation.</p>
+    </div>
+  </div>
+
+  <h2>Why this changed everything</h2>
+
+  <p>Attention did more than solve the fading memory problem. It changed what was computationally possible during training.</p>
+
+  <p>An RNN processes tokens sequentially — token 1, then token 2, then token 3. You cannot process token 3 until you have finished token 2. This means training on a long sequence requires many steps taken one after another, and you cannot speed this up by throwing more processors at it. The steps have to happen in order.</p>
+
+  <p>The attention mechanism has no such constraint. Because every token attends to every other token independently, all of these computations can happen at the same time across many processors simultaneously. A sequence of a thousand tokens that would require a thousand sequential steps in an RNN can be processed in a single parallel sweep in a transformer. This is why transformers became feasible to train on the scale of the entire internet — the architecture was a natural fit for what modern GPU hardware is designed to do.</p>
+
+  <p>The 2017 paper that introduced the transformer was titled "Attention Is All You Need." The title was a provocation: you do not need recurrence, you do not need sequential processing. Attention, applied carefully, is sufficient. The years since have proved the claim correct in a way even the authors likely did not anticipate.</p>
+
+  <h2>Where this picture breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this picture</div>
+    <p>The "every token looks at every other token" framing is accurate but it obscures a real cost. Attention scales quadratically with sequence length — which is just a way of saying that doubling the number of tokens roughly quadruples the computation required. This is why <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context windows</span> have limits: at some point the computation becomes prohibitively expensive, and significant research effort has gone into making attention more efficient for very long sequences.</p>
+    <p>The heads-as-specialists framing — "this head tracks grammar, that one tracks coreference" — is a useful intuition but an oversimplification. Attention heads do not have clean, human-interpretable roles. Researchers have found heads that appear to specialise, but most heads perform computations that resist tidy description. The specialisation is real but messier than the diagram suggests.</p>
+    <p>The scores-as-understanding framing is the deepest simplification. A high attention score between "it" and "trophy" means the model has learned that this connection is statistically useful for predicting what comes next — not that it has resolved the coreference the way a human reader does. The behaviour looks like understanding. Whether it constitutes understanding is a harder question, and one this article cannot settle.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="article-06-q-k-v-the-lookup-table.html">Q, K, V: The Lookup Table That Runs the World</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+  initTerms();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Transformers Beat Everything Before Them — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article { animation: fadeUp 0.5s ease both 0.1s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p            { margin-bottom: 20px; line-height: 1.75; }
+  a            { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  strong       { font-weight: 600; }
+  em           { font-style: italic; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE IT BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 10px; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+
+  /* ── TRANSFORMER ARCHITECTURE DIAGRAM ── */
+  .arch-grid { display: flex; gap: 24px; }
+  .arch-col { flex: 1; display: flex; flex-direction: column; }
+  .arch-col-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; text-align: center; }
+  .arch-box { border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; background: var(--card-bg); font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem; color: var(--text); text-align: center; margin-bottom: 4px; }
+  .arch-box .arch-note { font-size: 0.55rem; color: var(--muted); margin-top: 2px; display: block; }
+  .arch-box .arch-ref { font-size: 0.52rem; color: var(--terminal-accent); margin-top: 2px; display: block; }
+  .arch-arrow { text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--muted); margin: 3px 0; }
+  .arch-block { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 4px; background: var(--bg); }
+  .arch-block-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; text-align: center; }
+  .arch-inner { border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--text); margin-bottom: 5px; background: var(--card-bg); }
+  .arch-inner:last-child { margin-bottom: 0; }
+  .arch-inner .arch-ref { font-size: 0.52rem; color: var(--terminal-accent); display: block; margin-top: 2px; }
+  .arch-inner .arch-note { font-size: 0.52rem; color: var(--muted); display: block; margin-top: 2px; }
+  .arch-connect { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0; font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--terminal-accent); }
+  .arch-connect-line { flex: 1; height: 1px; background: var(--terminal-accent); }
+  .arch-output { border: 1px solid var(--terminal-accent); border-radius: 6px; padding: 8px 12px; background: rgba(79,195,161,0.05); font-family: 'IBM Plex Mono', monospace; font-size: 0.63rem; color: var(--terminal-accent); text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">07-why-transformers-beat-everything-before-them.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">07-why-transformers-beat-everything-before-them.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>07</span> &nbsp;·&nbsp; Module 02 — Transformer Architecture</div>
+
+  <h1>Why Transformers Beat Everything Before Them</h1>
+
+  <p class="lede">The transformer wasn't the cleverest architecture ever proposed. It was the one that scaled. Here is why that turned out to matter more than anything else.</p>
+
+  <h2>What came before and why it wasn't enough</h2>
+
+  <p>Recurrent neural networks were not bad. For most of the 2010s they were the best tool available for language tasks — translation, summarisation, question answering. They worked. Researchers built real products with them.</p>
+
+  <p>The problem was the ceiling. The fading memory problem from Article 05 meant that long sequences were always a struggle. The sequential processing requirement meant training was slow — you could not parallelise across a sequence because each step depended on the one before it. And slow training meant you could not use more data, because more data requires more training time. The architecture and the available compute were mismatched in a way that had no clean solution within the RNN framework.</p>
+
+  <p><span class="term" data-def="Long Short-Term Memory. A variant of the RNN with gating mechanisms that selectively retain or forget information, extending effective memory. Widely used before transformers.">LSTMs</span> — long short-term memory networks, a more sophisticated variant of the RNN — helped. They introduced gating mechanisms, which are just controlled switches that decide what information to keep and what to discard as the model reads along a sequence. They extended the effective memory window considerably. But they did not solve the parallelisation problem, and they added enough complexity that they were harder to scale and tune. The ceiling rose slightly. It did not disappear.</p>
+
+  <h2>The three things transformers got right simultaneously</h2>
+
+  <p>The 2017 paper "Attention Is All You Need" proposed a different architecture built entirely around the attention mechanism from Article 05. It got three things right at once, and the combination was what mattered.</p>
+
+  <p>First, attention solved the long-range dependency problem cleanly. Every token can attend directly to every other token regardless of distance. The trophy and the pronoun referring to it five words later are no further apart than adjacent words.</p>
+
+  <p>Second, because attention computations are independent of each other, the entire sequence can be processed in parallel. This meant transformers could use GPU hardware — which is designed for doing many simple computations simultaneously — far more efficiently than RNNs ever could. Training that would have taken weeks could now take days.</p>
+
+  <p>Third, and least obviously, the architecture turned out to be general. Attention is a mechanism for finding relationships in sequences. Almost any data can be framed as a sequence — words, image patches, audio frames, protein residues, lines of code. The same architecture that translated text in 2017 now runs across most of modern AI.</p>
+
+  <p>No single one of these was a decisive advantage. Together they were.</p>
+
+  <h2>Building intuition for the architecture</h2>
+
+  <p>Before looking at the full picture, it helps to name the components you already understand from earlier articles and what each one is doing.</p>
+
+  <p>Tokens are the input. A sentence gets broken into pieces — sometimes words, sometimes parts of words — and each piece becomes a token. "The cat sat on the mat" might become six tokens, one per word.</p>
+
+  <p>Positional encoding is a small addition to each token that tells the model where in the sequence it sits. Attention on its own has no sense of order — "cat sat" and "sat cat" would look identical without it. Positional encoding solves this by injecting position information directly into the token's representation before any attention is computed.</p>
+
+  <p>The attention mechanism, covered in Articles 05 and 06, is the core operation. Each token generates a query, a key, and a value. Queries match against keys to produce scores. Scores weight the blending of values. The result is a representation of each token that has been shaped by its full context.</p>
+
+  <p>Feed-forward layers sit after the attention step in each block. Where attention does relational work — figuring out how tokens relate to each other — the feed-forward layer does additional computation on each token individually. Think of attention as the step that gathers context, and the feed-forward layer as the step that processes it.</p>
+
+  <p>The whole block — attention plus feed-forward — gets repeated many times. Each repetition is a layer. More layers means more passes of refinement before the output is produced. A small model might have 12 layers. A large one might have 96.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">transformer_architecture.diagram</span>
+    </div>
+    <div class="mac-body">
+      <div class="arch-grid">
+
+        <!-- ENCODER COLUMN -->
+        <div class="arch-col">
+          <div class="arch-col-label">Encoder</div>
+
+          <div class="arch-box">
+            Input tokens
+            <span class="arch-note">(e.g. "The cat sat")</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-box">
+            Embedding + Positional Encoding
+            <span class="arch-note">tokens become vectors; position added</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-block">
+            <div class="arch-block-label">Encoder Block × N</div>
+            <div class="arch-inner">
+              Multi-Head Self-Attention
+              <span class="arch-ref">→ Articles 05 &amp; 06</span>
+            </div>
+            <div class="arch-inner">
+              Feed-Forward Layer
+              <span class="arch-ref">→ Article 01</span>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-box">
+            Encoded representation
+            <span class="arch-note">rich understanding of input</span>
+          </div>
+        </div>
+
+        <!-- DECODER COLUMN -->
+        <div class="arch-col">
+          <div class="arch-col-label">Decoder</div>
+
+          <div class="arch-box">
+            Output tokens so far
+            <span class="arch-note">(e.g. "Le chat")</span>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-box">
+            Embedding + Positional Encoding
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-block">
+            <div class="arch-block-label">Decoder Block × N</div>
+            <div class="arch-inner">
+              Masked Self-Attention
+              <span class="arch-note">can only see past tokens</span>
+            </div>
+            <div class="arch-inner">
+              Cross-Attention ←
+              <span class="arch-note">reads from encoder</span>
+            </div>
+            <div class="arch-inner">
+              Feed-Forward Layer
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="arch-output">
+            Next token (probability)
+            <span style="display:block; font-size:0.52rem; margin-top:2px; color: var(--terminal-accent);">→ "assis"</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="arch-connect" style="margin-top: 16px;">
+        <div class="arch-connect-line"></div>
+        <span>Encoded representation → Cross-Attention</span>
+        <div class="arch-connect-line"></div>
+      </div>
+
+      <p class="table-caption" style="margin-top: 12px;">The original transformer. Encoder reads and understands; decoder generates one token at a time, consulting both what it has generated and what the encoder understood. Modern LLMs use decoder-only.</p>
+    </div>
+  </div>
+
+  <h2>The translation example: encoder and decoder</h2>
+
+  <p>The original transformer was built for translation — specifically, translating English into French. It had two components: an encoder and a decoder, each built from the blocks described above.</p>
+
+  <p>Take the sentence "The cat sat on the mat." The encoder reads the full English sentence and builds a rich representation of what it means — using attention to connect every word to every other word, resolving relationships, producing a dense understanding of the input. The encoder does not generate anything. Its job is comprehension.</p>
+
+  <p>The decoder then generates the French translation one token at a time: "Le," then "chat," then "s'est," and so on. At each step it does two things. First, it attends to the French tokens it has already generated — this is called self-attention, and it is masked so the model cannot cheat by looking at future tokens it has not generated yet. Second, it attends to the encoder's output — this is called cross-attention, and it is how the decoder keeps consulting the original English meaning as it generates each new French word.</p>
+
+  <p>The encoder/decoder split exists because translation is a two-act process: fully read the source language, then generate the target. Comprehension first, generation second. Two separate jobs, two separate components.</p>
+
+  <h2>Why modern LLMs dropped the encoder</h2>
+
+  <p>If the encoder/decoder architecture worked for translation, why do GPT, Claude, and LLaMA not use it?</p>
+
+  <p>Because language modelling is not a two-act process. There is no source sentence in a foreign language that needs to be fully read and compressed before generation can begin. There is only one stream of text, and one job: predict what comes next.</p>
+
+  <p>The decoder can attend back to everything it has already seen in the sequence. By the time it is predicting token 50, it has attended to tokens 1 through 49 — which is all the context it needs. Nothing needs to be encoded into a separate representation first. The comprehension and the generation are the same operation, happening in the same component.</p>
+
+  <p>Decoder-only is not a simplification or a shortcut. It is the right architecture for the task. Encoder/decoder is correct when input and output live in different spaces — English into French. Decoder-only is correct when input and output live in the same space — text continuing from text.</p>
+
+  <p>You might be wondering: but ChatGPT and Claude can translate too — so what gives? They can, but they do it differently. Not by explicitly encoding a source language and decoding a target, but because exposure to vast amounts of multilingual text during <span class="term" data-def="The initial large-scale phase where a model learns from enormous amounts of raw text. Produces a general-purpose model before any fine-tuning.">pre-training</span> made translation an emergent capability. The model has seen so much English and French side by side that it can continue a prompt that says "translate this" without needing a dedicated encoder to do it. Same result, different mechanism.</p>
+
+  <h2>Scale as an unexpected force</h2>
+
+  <p>Here is the part nobody predicted. As transformers got bigger — more layers, more parameters, more training data — they did not just get incrementally better at existing tasks. They developed qualitatively new capabilities that smaller models simply did not have.</p>
+
+  <p>A model with 1 billion parameters can complete sentences. A model with 10 billion parameters can answer questions. A model with 100 billion parameters can write code, reason through multi-step problems, and translate languages it was never explicitly trained on. These are not improvements in degree. They are differences in kind. The same architecture, scaled up, starts doing things that feel categorically different.</p>
+
+  <p>This phenomenon — sometimes called emergent capability — is still not fully understood. Researchers can observe it happening but cannot reliably predict which new capabilities will appear at which scale. What is clear is that the transformer architecture did not just benefit from scale. It seemed to unlock something new as scale increased, in a way that earlier architectures did not.</p>
+
+  <h2>What transformers are still bad at</h2>
+
+  <p>The transformer won. It has not solved intelligence.</p>
+
+  <p>Attention scales quadratically with sequence length — meaning double the tokens, roughly four times the computation. Context windows are not unlimited. Hallucination — the model confidently producing false information — is a direct consequence of the architecture: the model generates the most statistically plausible next token, not the most factually accurate one. It has no mechanism for checking whether what it is saying is true.</p>
+
+  <p>Transformers have no persistent memory. Every conversation starts fresh. Every <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context window</span> is a clean slate. A human expert who has spent forty years studying a subject brings all of that to every sentence they read. A transformer brings only what fits in the current context window.</p>
+
+  <p>And transformers are extraordinarily data-hungry compared to humans. A child learns the concept of a chair from a handful of examples. A transformer requires exposure to millions of sentences containing the word before its representation stabilises. The architecture is powerful but not efficient in the way biological intelligence is efficient.</p>
+
+  <p>These are not arguments against transformers. They are the shape of the problem that the next decade of research is organised around.</p>
+
+  <h2>Where this picture breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this picture</div>
+    <p>The "three things at once" framing makes the transformer's success sound inevitable in retrospect. It was not. Attention mechanisms existed before 2017 and were used as additions to RNNs rather than replacements for them. The insight that you could discard recurrence entirely and build purely on attention was a genuine leap, not an obvious next step.</p>
+    <p>The encoder/decoder diagram is the original 2017 architecture. Modern transformers have diverged considerably — different positional encoding schemes, different normalisation approaches, different attention variants. The diagram is a map of the concept, not a blueprint for any specific model in production today.</p>
+    <p>Finally, the emergent capability story is real but contested. Some researchers argue that apparent emergence is partly an artefact of how capability is measured — that smoother, more gradual improvement becomes visible as a sharp jump when you change the metric. The debate is unresolved. What is not contested is that large transformers do things small transformers cannot.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="#">Pre-training: Learning from the Whole Internet</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+  initTerms();
+</script>
+
+</body>
+</html>
