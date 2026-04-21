@@ -1,0 +1,186 @@
+/* ============================================================
+   Inside the Black Box — shared design system
+   ============================================================
+   Fonts expected via <link> in each page's <head>:
+   Lora (400, 400i, 600)  ·  IBM Plex Mono (300, 400, 500)
+   ============================================================ */
+
+/* ── DESIGN TOKENS ── */
+:root {
+  --bg:                   #f5f2eb;
+  --text:                 #1a1a1a;
+  --muted:                #999;
+  --accent:               #c0392b;
+  --border:               #ddd8cf;
+  --card-bg:              #eeeae0;
+
+  /* Terminal header — always dark, never affected by light/dark toggle */
+  --terminal-bg:          #141414;
+  --terminal-text:        #e8e4d8;
+  --terminal-muted:       #4a4a4a;
+  --terminal-accent:      #4fc3a1;
+  --terminal-border:      #2a2a2a;
+  --window-bar:           #1e1e1e;
+  --window-border:        #2e2e2e;
+
+  /* Mac OS window chrome — diagram cards only, adapts to theme */
+  --window-chrome:        #d4cfc4;
+  --window-chrome-border: #c0b9ae;
+}
+
+[data-theme="dark"] {
+  --bg:                   #0e0e0e;
+  --text:                 #e8e4d8;
+  --muted:                #555;
+  --accent:               #e05a4e;
+  --border:               #222;
+  --card-bg:              #1a1a1a;
+  --window-chrome:        #1e1e1e;
+  --window-chrome-border: #2e2e2e;
+}
+
+/* ── RESET ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 18px; }
+
+/* ── BASE ── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Lora', Georgia, serif;
+  transition: background 0.4s, color 0.4s;
+}
+
+/* ── TERMINAL HEADER ──────────────────────────────────────────
+   Always dark (#141414). The Mac OS three-dot buttons appear
+   here on the dark window bar AND on diagram .mac-window cards
+   inside articles. They share .mac-btn classes but sit on very
+   different backgrounds — intentional per design spec.
+   ─────────────────────────────────────────────────────────── */
+#terminal-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: var(--terminal-bg);
+  border-bottom: 1px solid var(--terminal-border);
+}
+
+.terminal-titlebar {
+  background: var(--window-bar);
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-bottom: 1px solid var(--window-border);
+  position: relative; /* anchor for .titlebar-right */
+}
+
+/* Three-dot buttons — shared between header and diagram chrome */
+.mac-btn        { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.mac-btn.red    { background: #ff5f57; }
+.mac-btn.yellow { background: #febc2e; }
+.mac-btn.green  { background: #28c840; }
+
+.titlebar-center {
+  flex: 1;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--terminal-muted);
+  letter-spacing: 0.06em;
+}
+
+/* Absolutely positioned so it doesn't shift .titlebar-center */
+.titlebar-right {
+  position: absolute;
+  right: 16px;
+}
+
+.toggle {
+  background: none;
+  border: 1px solid var(--terminal-border);
+  border-radius: 20px;
+  padding: 3px 12px;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--terminal-muted);
+  letter-spacing: 0.08em;
+  transition: all 0.2s;
+}
+.toggle:hover { border-color: var(--terminal-accent); color: var(--terminal-accent); }
+
+.terminal-prompt-bar {
+  padding: 10px 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── PROMPT TEXT COLOURS ── */
+.prompt-left { display: flex; align-items: center; }
+.p-dir   { color: var(--terminal-accent); }
+.p-muted { color: var(--terminal-muted); }
+.p-file  { color: #e8c97a; }
+.p-cmd   { color: var(--terminal-text); }
+
+/* ── BLINKING CURSOR ── */
+.cursor-inline {
+  display: inline-block;
+  width: 7px; height: 12px;
+  background: var(--terminal-accent);
+  vertical-align: middle;
+  margin-left: 3px;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ── BACK LINK (article pages) ── */
+.back-link {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--terminal-muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+.back-link:hover                { color: var(--terminal-accent); }
+.back-link:hover .back-arrow    { transform: translateX(-3px); }
+.back-arrow                     { transition: transform 0.15s; }
+
+/* ── MAC WINDOW CHROME (diagram cards inside articles only) ──
+   Light titlebar with coloured dots. Never used on the terminal
+   header, which uses .terminal-titlebar / --window-bar instead.
+   ─────────────────────────────────────────────────────────── */
+.mac-window {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--window-chrome-border);
+  margin: 40px 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.07);
+}
+.mac-titlebar {
+  background: var(--window-chrome);
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-bottom: 1px solid var(--window-chrome-border);
+}
+.mac-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.63rem;
+  color: var(--muted);
+  margin-left: 8px;
+  letter-spacing: 0.06em;
+}
+.mac-body {
+  background: var(--card-bg);
+  padding: 28px 24px;
+}

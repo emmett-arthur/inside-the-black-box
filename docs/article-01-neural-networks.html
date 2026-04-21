@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is a Neural Network? — Inside the Black Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 80px 24px 0;
+    animation: fadeUp 0.5s ease both 0.1s;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p            { margin-bottom: 20px; }
+  a            { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  strong       { font-weight: 600; }
+  em           { font-style: italic; }
+
+  /* ── ANALOGY NOTE ── */
+  .analogy-note {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 24px 0;
+  }
+  .analogy-note strong { color: var(--text); }
+
+  /* ── NEURON DIAGRAM ── */
+  .layers-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    overflow-x: auto;
+  }
+  .layer-col   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .layer-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .neuron {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+  .neuron.active { border-color: var(--accent); background: rgba(192,57,43,0.07); color: var(--accent); }
+  .layer-arrows {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 22px 8px 0;
+  }
+  .arrow-line { width: 24px; height: 1px; background: var(--border); }
+
+  /* ── WEIGHT TABLE ── */
+  .weight-demo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .weight-demo th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .weight-demo td        { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .weight-demo tr:last-child td { border-bottom: none; }
+  .weight-demo .hi       { color: var(--accent); font-weight: 500; }
+  .weight-demo .lo       { color: var(--muted); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE THE ANALOGY BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 8px; font-size: 0.73rem; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">01-what-is-a-neural-network.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">01-what-is-a-neural-network.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>01</span> &nbsp;·&nbsp; Foundations</div>
+
+  <h1>What is a Neural Network?</h1>
+
+  <p class="lede">The phrase gets thrown around constantly. Here's what's actually happening inside — told through the one analogy that gets closest to the truth, and where that analogy falls apart.</p>
+
+  <p>Before you can understand transformers, attention, RLHF, or any of the machinery that makes modern AI work, you need one thing: an honest picture of what a neural network actually is. Not what it feels like to use one — what it literally does.</p>
+
+  <p>The short answer: <strong>a neural network is a function that maps inputs to outputs by passing numbers through layers of simple mathematical operations, where the behaviour of those operations is shaped by billions of learned parameters called weights.</strong></p>
+
+  <p>That sentence is precise but not yet useful. Let's build up to it.</p>
+
+  <h2>The analogy: a panel of judges</h2>
+
+  <p>Imagine you're trying to decide whether a photo contains a cat. You assemble a panel of judges — say, five of them. Each judge looks at the photo and gives a score between 0 and 1, representing their confidence. But here's the twist: each judge only pays attention to a small patch of the image, and each has a different sensitivity. One notices whiskers. One notices pointed ears. One notices the general shape of a sitting animal.</p>
+
+  <p>You then combine their scores — weighting some judges more heavily than others based on how reliable they've proven to be — and produce a final verdict.</p>
+
+  <p>Now imagine instead of five judges, you have millions. And instead of one panel, you have dozens of panels stacked on top of each other — the first panel looks at raw pixels, the second looks at the outputs of the first (edges, shapes), the third looks at the outputs of the second (textures, parts), and so on. By the time you reach the final layer, the network has built a rich, abstract representation of the image from the ground up.</p>
+
+  <p>That's a neural network. The "judges" are neurons. Their individual sensitivities are weights. The stacked panels are layers.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">neural_network_layers.diagram</span>
+    </div>
+    <div class="mac-body">
+      <div class="layers-grid">
+        <div class="layer-col">
+          <div class="layer-label">Input</div>
+          <div class="neuron active">x₁</div>
+          <div class="neuron active">x₂</div>
+          <div class="neuron active">x₃</div>
+          <div class="neuron active">x₄</div>
+        </div>
+        <div class="layer-arrows">
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+        </div>
+        <div class="layer-col">
+          <div class="layer-label">Hidden 1</div>
+          <div class="neuron active">h₁</div>
+          <div class="neuron">h₂</div>
+          <div class="neuron active">h₃</div>
+          <div class="neuron">h₄</div>
+          <div class="neuron active">h₅</div>
+        </div>
+        <div class="layer-arrows">
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+        </div>
+        <div class="layer-col">
+          <div class="layer-label">Hidden 2</div>
+          <div class="neuron">h₁</div>
+          <div class="neuron active">h₂</div>
+          <div class="neuron active">h₃</div>
+          <div class="neuron">h₄</div>
+        </div>
+        <div class="layer-arrows">
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+          <div class="arrow-line"></div>
+        </div>
+        <div class="layer-col">
+          <div class="layer-label">Output</div>
+          <div class="neuron" style="opacity:0.35">0.02</div>
+          <div class="neuron active">0.91</div>
+        </div>
+      </div>
+      <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:0.6rem; color:var(--muted); margin-top:16px; margin-bottom:0;">
+        Highlighted neurons fired strongly for this input. Output: 91% cat, 2% not-cat.
+      </p>
+    </div>
+  </div>
+
+  <h2>What a weight actually is</h2>
+
+  <p>Every connection between neurons has a weight — a single number that determines how much one neuron's output influences the next neuron's input. A high positive weight means "if this fires, strongly push the next one to fire too." A negative weight means "if this fires, suppress the next one." A weight near zero means "this connection barely matters."</p>
+
+  <p>A large modern neural network might have tens of billions of these weights. The entire character of the network — what it knows, what it's good at, how it behaves — lives in those numbers.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">weights_example.txt</span>
+    </div>
+    <div class="mac-body">
+      <table class="weight-demo">
+        <thead>
+          <tr>
+            <th>Connection</th>
+            <th>Weight</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>whisker-detector → cat-output</td><td class="hi">+2.8</td><td>Strong positive signal</td></tr>
+          <tr><td>round-ear-detector → cat-output</td><td class="hi">+1.9</td><td>Positive signal</td></tr>
+          <tr><td>beak-detector → cat-output</td><td class="lo">−3.1</td><td>Strong suppressor</td></tr>
+          <tr><td>fur-texture → cat-output</td><td>+0.4</td><td>Weak — not decisive</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p>These weights aren't hand-coded. Nobody sat down and decided that whiskers should score +2.8. <strong>The network learned those values</strong> by being shown millions of labelled examples and gradually adjusting every weight to reduce its mistakes. That process is called training — and it's the subject of the next article.</p>
+
+  <h2>The activation function: giving neurons opinions</h2>
+
+  <p>There's one more piece. Each neuron doesn't just pass its input straight through — it applies a small function called an <strong>activation function</strong> that introduces non-linearity. The most common one used today is called ReLU: if the input is negative, output zero. If it's positive, pass it through unchanged.</p>
+
+  <p>Why does this matter? Without non-linearity, stacking dozens of layers would be mathematically equivalent to having just one layer. Non-linear activations are what let deep networks learn curves, corners, and complexity.</p>
+
+  <div class="callout">
+    <strong>The key insight:</strong> A neural network isn't magic. It's a very large composition of very simple operations — multiply by a weight, add a bias, apply a threshold — repeated millions of times. Intelligence emerges from scale and the right training signal, not from any single clever component.
+  </div>
+
+  <h2>Where the analogy breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Analogy limitations</div>
+    <p><strong>Neurons don't "pay attention" to specific things by design.</strong> Real neurons in a trained network activate in response to patterns that often don't have clean human-interpretable labels like "whiskers." The features a network learns are frequently distributed, abstract, and hard to describe.</p>
+    <p><strong>Neurons don't work independently.</strong> The analogy implies discrete, separable opinions. In reality, meaning is distributed across many neurons simultaneously — no single neuron reliably represents a single concept.</p>
+    <p><strong>Biological neurons are nothing like this.</strong> The name "neural network" is a loose analogy to the brain. These are not simulations of the brain — they're mathematical functions inspired, very loosely, by its architecture.</p>
+  </div>
+
+  <h2>What this means in practice</h2>
+
+  <p>When you interact with GPT-4, Claude, or any modern language model, you're talking to a neural network with hundreds of billions of weights arranged in a specific architecture called a <em>transformer</em>. All of its knowledge — about history, code, language, reasoning — lives in those numbers. There's no database being queried. No rules being followed. Just a very large, very well-trained function mapping your input to a probable output.</p>
+
+  <p>That's the foundation. Everything else — attention, training, alignment, agents — is built on top of this.</p>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="#">How a Network Learns: Backprop &amp; Gradient Descent</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  // Back link: animate "back" in the prompt, set flag, then navigate
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inside the Black Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { min-height: 100vh; }
+
+  /* ── PAGE CONTENT ── */
+  #page {
+    padding-top: 88px; /* terminal header height */
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #page.visible { opacity: 1; }
+
+  /* ── HERO ── */
+  .hero {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 32px 64px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+  .hero-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .hero-sub .cmd { color: var(--accent); }
+
+  /* ── ARTICLE INDEX ── */
+  .index {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+
+  .module-group { margin-top: 52px; }
+
+  .module-rule {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 4px;
+  }
+  .module-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .module-line { flex: 1; height: 1px; background: var(--border); }
+
+  .article-list { list-style: none; }
+
+  .article-item {
+    border-bottom: 1px solid var(--border);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .article-item.visible { opacity: 1; transform: translateY(0); }
+
+  .article-link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px 0;
+    text-decoration: none;
+    color: var(--text);
+    transition: color 0.15s;
+  }
+  .article-link:hover                      { color: var(--accent); }
+  .article-link:hover .article-num         { color: var(--accent); }
+  .article-link:hover .article-arrow       { opacity: 1; transform: translateX(0); }
+
+  .article-left { display: flex; align-items: baseline; gap: 18px; }
+  .article-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+    width: 22px;
+    transition: color 0.15s;
+  }
+  .article-title {
+    font-family: 'Lora', serif;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+  .article-arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    opacity: 0;
+    flex-shrink: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center" id="titlebar-center">black_box.sh</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <span id="prompt-text"><span class="cursor-inline"></span></span>
+  </div>
+</div>
+
+<!-- PAGE -->
+<div id="page">
+  <div class="hero">
+    <h1>Inside the<br>Black Box</h1>
+    <p class="hero-sub"><span class="cmd">cat</span> // a collection of short essays explaining the architecture, training, and behaviour of large language models.</p>
+  </div>
+
+  <div class="index">
+
+    <div class="module-group">
+      <div class="module-rule"><span class="module-label">01 — Foundations</span><div class="module-line"></div></div>
+      <ul class="article-list">
+        <li class="article-item">
+          <a class="article-link" href="article-01-neural-networks.html"
+             data-slug="01-what-is-a-neural-network.md">
+            <div class="article-left"><span class="article-num">01</span><span class="article-title">What is a Neural Network?</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="02-backprop-and-gradient-descent.md">
+            <div class="article-left"><span class="article-num">02</span><span class="article-title">How a Network Learns: Backprop &amp; Gradient Descent</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="03-what-is-a-parameter.md">
+            <div class="article-left"><span class="article-num">03</span><span class="article-title">What is a Parameter?</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="module-group">
+      <div class="module-rule"><span class="module-label">02 — Transformer Architecture</span><div class="module-line"></div></div>
+      <ul class="article-list">
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="04-attention-the-mechanism-behind-everything.md">
+            <div class="article-left"><span class="article-num">04</span><span class="article-title">Attention: The Mechanism Behind Everything</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="05-q-k-v-the-lookup-table.md">
+            <div class="article-left"><span class="article-num">05</span><span class="article-title">Q, K, V: The Lookup Table That Runs the World</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="06-why-transformers-won.md">
+            <div class="article-left"><span class="article-num">06</span><span class="article-title">Why Transformers Beat Everything Before Them</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="module-group">
+      <div class="module-rule"><span class="module-label">03 — Training &amp; Alignment</span><div class="module-line"></div></div>
+      <ul class="article-list">
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="07-pretraining.md">
+            <div class="article-left"><span class="article-num">07</span><span class="article-title">Pre-training: Learning from the Whole Internet</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="08-rlhf.md">
+            <div class="article-left"><span class="article-num">08</span><span class="article-title">RLHF: Teaching a Model to Be Helpful</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="09-what-alignment-means.md">
+            <div class="article-left"><span class="article-num">09</span><span class="article-title">What "Alignment" Actually Means</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="module-group">
+      <div class="module-rule"><span class="module-label">04 — Agentic Systems</span><div class="module-line"></div></div>
+      <ul class="article-list">
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="10-what-is-an-agent.md">
+            <div class="article-left"><span class="article-num">10</span><span class="article-title">What is an AI Agent?</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="11-tool-use-agentic-loop.md">
+            <div class="article-left"><span class="article-num">11</span><span class="article-title">Tool Use and the Agentic Loop</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="12-multi-agent-systems.md">
+            <div class="article-left"><span class="article-num">12</span><span class="article-title">Multi-Agent Systems</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="module-group">
+      <div class="module-rule"><span class="module-label">05 — RAG</span><div class="module-line"></div></div>
+      <ul class="article-list">
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="13-what-are-embeddings.md">
+            <div class="article-left"><span class="article-num">13</span><span class="article-title">What are Embeddings?</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="14-vector-search.md">
+            <div class="article-left"><span class="article-num">14</span><span class="article-title">Vector Search Explained</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="15-rag-vs-finetuning.md">
+            <div class="article-left"><span class="article-num">15</span><span class="article-title">When RAG Beats Fine-tuning</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="module-group">
+      <div class="module-rule"><span class="module-label">06 — Evals</span><div class="module-line"></div></div>
+      <ul class="article-list">
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="16-why-evals-matter.md">
+            <div class="article-left"><span class="article-num">16</span><span class="article-title">Why Evals Matter</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="17-what-good-evals-look-like.md">
+            <div class="article-left"><span class="article-num">17</span><span class="article-title">What Good Evaluation Looks Like</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+        <li class="article-item">
+          <a class="article-link" href="#"
+             data-slug="18-measuring-what-you-cant-see.md">
+            <div class="article-left"><span class="article-num">18</span><span class="article-title">Measuring What You Can't See</span></div>
+            <span class="article-arrow">→</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  // ── BOOT SEQUENCE ──
+  const bootLines = [
+    { text: '> initialising weights...',  right: '[700B parameters]', delay: 0    },
+    { text: '> loading tokenizer...',     right: '[vocab: 100,277]',  delay: 650  },
+    { text: '> running forward pass...',  right: '',                  delay: 1350 },
+    { text: '> predicting next token...', right: '[p=0.91 "the"]',    delay: 2050 },
+    { text: '> done.',                    right: '',                  delay: 2800, accent: true },
+  ];
+
+  const promptEl        = document.getElementById('prompt-text');
+  const titlebarCenter  = document.getElementById('titlebar-center');
+  let   bootDone        = false;
+
+  function setPrompt(html) { promptEl.innerHTML = html; }
+
+  const cameBack = sessionStorage.getItem('bb_came_back');
+  if (cameBack) {
+    // Returning from an article — skip boot, go straight to idle state
+    sessionStorage.removeItem('bb_came_back');
+    bootDone = true;
+    titlebarCenter.textContent = '~/inside-the-black-box';
+    setPrompt(`<span class="p-dir">~/inside-the-black-box</span> <span class="p-muted">$</span> <span class="cursor-inline"></span>`);
+    document.getElementById('page').classList.add('visible');
+    document.querySelectorAll('.article-item').forEach(el => el.classList.add('visible'));
+  } else {
+    // Fresh visit — run boot sequence
+    bootLines.forEach(line => {
+      setTimeout(() => {
+        const right  = line.right
+          ? `<span class="p-muted" style="margin-left:12px">${line.right}</span>` : '';
+        const cls    = line.accent ? 'p-dir' : 'p-cmd';
+        setPrompt(`<span class="${cls}">${line.text}</span>${right}<span class="cursor-inline"></span>`);
+      }, line.delay);
+    });
+
+    // After boot: reveal page, settle prompt into idle state
+    setTimeout(() => {
+      bootDone = true;
+      titlebarCenter.textContent = '~/inside-the-black-box';
+      setPrompt(`<span class="p-dir">~/inside-the-black-box</span> <span class="p-muted">$</span> <span class="cursor-inline"></span>`);
+
+      const page = document.getElementById('page');
+      page.classList.add('visible');
+
+      document.querySelectorAll('.article-item').forEach((el, i) => {
+        setTimeout(() => el.classList.add('visible'), i * 40);
+      });
+    }, 3500);
+  }
+
+  // ── HOVER INTERACTIONS ──
+  let hoverTimeout;
+
+  document.querySelectorAll('.article-link').forEach(link => {
+    const slug = link.getAttribute('data-slug');
+
+    link.addEventListener('mouseenter', () => {
+      if (!bootDone) return;
+      clearTimeout(hoverTimeout);
+      setPrompt(
+        `<span class="p-dir">~/inside-the-black-box</span> <span class="p-muted">$</span>` +
+        ` <span class="p-cmd"> cat </span><span class="p-file">${slug}</span>` +
+        `<span class="cursor-inline"></span>`
+      );
+    });
+
+    link.addEventListener('mouseleave', () => {
+      if (!bootDone) return;
+      hoverTimeout = setTimeout(() => {
+        setPrompt(
+          `<span class="p-dir">~/inside-the-black-box</span> <span class="p-muted">$</span>` +
+          ` <span class="cursor-inline"></span>`
+        );
+      }, 200);
+    });
+
+    // Click: animate open command, then navigate
+    link.addEventListener('click', e => {
+      const href = link.getAttribute('href');
+      if (!href || href === '#') return; // unwritten articles — no-op
+
+      e.preventDefault();
+      bootDone = false; // lock hover during transition
+
+      setPrompt(
+        `<span class="p-dir">~/inside-the-black-box</span> <span class="p-muted">$</span>` +
+        ` <span class="p-cmd"> open </span><span class="p-file">${slug}</span>`
+      );
+
+      setTimeout(() => {
+        setPrompt(
+          `<span class="p-cmd">&gt; opening </span><span class="p-file">${slug}</span>` +
+          `<span class="p-muted">...</span>`
+        );
+      }, 400);
+
+      setTimeout(() => { window.location.href = href; }, 900);
+    });
+  });
+</script>
+
+</body>
+</html>
