@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How a Network Learns — Inside the Black Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  /* Article-specific colour tokens */
+  :root {
+    --amber: #e8a838;
+    --green:  #2ecc71;
+  }
+
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 80px 24px 0;
+    animation: fadeUp 0.5s ease both 0.1s;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+  p        { margin-bottom: 20px; line-height: 1.75; }
+  strong   { font-weight: 600; }
+  em       { font-style: italic; }
+
+  /* ── EXAMPLE THREAD ── */
+  .example-thread {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 28px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.8;
+    color: var(--muted);
+  }
+  .example-thread .label {
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+  .example-thread strong { color: var(--text); }
+  .val-good  { color: var(--green); }
+  .val-bad   { color: var(--accent); }
+  .val-amber { color: var(--amber); }
+
+  /* ── DATA TABLES ── */
+  .mac-body { overflow-x: auto; } /* override for wide tables */
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+  }
+  .data-table th {
+    text-align: left;
+    font-weight: 400;
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 14px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .data-table th:first-child { padding-left: 0; }
+  .data-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text);
+  }
+  .data-table td:first-child        { padding-left: 0; }
+  .data-table tr:last-child td      { border-bottom: none; }
+
+  .col-weight { color: var(--muted); }
+
+  .sig-high  { color: var(--accent); font-weight: 500; }
+  .sig-mid   { color: var(--amber); }
+  .sig-low   { color: var(--green); }
+
+  .severity-bar { display: flex; align-items: center; gap: 8px; }
+  .bar-track    { height: 6px; border-radius: 3px; background: var(--border); flex-shrink: 0; }
+  .bar-fill     { height: 100%; border-radius: 3px; }
+  .bar-high     { background: var(--accent); }
+  .bar-mid      { background: var(--amber); }
+  .bar-low      { background: var(--green); }
+
+  .verdict      { font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .verdict.high { color: var(--accent); }
+  .verdict.mid  { color: var(--amber); }
+  .verdict.low  { color: var(--green); }
+
+  .nudge-pos  { color: var(--green); }
+  .nudge-neg  { color: var(--accent); }
+  .new-weight { color: var(--terminal-accent); font-weight: 500; }
+
+  .table-caption {
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 14px;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE IT BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 10px; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">02-backprop-and-gradient-descent.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">02-backprop-and-gradient-descent.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>02</span> &nbsp;·&nbsp; Foundations</div>
+  <h1>How a Network Learns: Backprop &amp; Gradient Descent</h1>
+  <p class="lede">Every neural network starts out completely wrong. Here's the surprisingly simple idea that fixes it.</p>
+
+  <p>In the last article we established what a neural network is: a function with billions of weights that maps inputs to outputs. What we didn't answer is how those weights get their values. The answer is training — and it starts with the network being completely, embarrassingly wrong.</p>
+
+  <h2>The untrained network</h2>
+
+  <p>When a neural network is first created, its weights are initialised randomly. There's no knowledge in them — just noise. Feed it any input and it will produce a meaningless output. The network isn't broken. It simply hasn't learned anything yet.</p>
+
+  <p>We'll use a single running example throughout this article: <strong>a neural network that predicts house prices.</strong> It takes four inputs — size, bedrooms, distance to city centre, building age — and produces a single number: a predicted sale price.</p>
+
+  <div class="example-thread">
+    <div class="label">Running example — the untrained model</div>
+    <strong>Input:</strong> 120m² &nbsp;·&nbsp; 3 bedrooms &nbsp;·&nbsp; 2km from centre &nbsp;·&nbsp; 15 years old<br>
+    <strong>Predicted price:</strong> <span class="val-bad">€47,000</span> &nbsp;&nbsp;
+    <strong>Actual price:</strong> <span class="val-good">€380,000</span><br>
+    <strong>Error:</strong> <span class="val-bad">−€333,000</span> &nbsp;·&nbsp; random weights, meaningless output
+  </div>
+
+  <h2>Labelled data and the training signal</h2>
+
+  <p>To train the network we need examples — lots of them. Each example is a pair: a set of inputs (the four features of a house) and a label (its actual sale price). We might have 100,000 such pairs from real transactions.</p>
+
+  <p>Training works by feeding the network one example at a time, letting it make a prediction, then comparing that prediction to the real answer. The gap between prediction and reality is the training signal. Everything that follows is about using that signal to make the weights better.</p>
+
+  <h2>The loss function: measuring wrongness</h2>
+
+  <p>We need a single number that captures how wrong the prediction was. That number is called the <strong>loss</strong>. The formula varies, but the intuition is always the same: the bigger the gap between prediction and reality, the higher the loss. A perfect prediction produces a loss of zero.</p>
+
+  <p>The goal of all training is to minimise the loss across the entire dataset. Every other mechanism — gradient descent, backpropagation, learning rate — exists in service of this one objective.</p>
+
+  <div class="example-thread">
+    <div class="label">Running example — the loss</div>
+    Predicted <span class="val-bad">€47,000</span> vs actual <span class="val-good">€380,000</span>: <strong>very high loss.</strong><br>
+    Predicted <span class="val-amber">€374,000</span> vs actual <span class="val-good">€380,000</span>: <strong>very low loss.</strong><br>
+    We want the second. Training is the process of getting there.
+  </div>
+
+  <h2>Backpropagation: assigning blame</h2>
+
+  <p>We know the prediction was €333,000 wrong. But the network has dozens of weights — the one connecting "bedrooms" to the hidden layer, the one for "location", the one for "size", and so on. Which of them actually caused the error? And by how much?</p>
+
+  <p>Backpropagation is the algorithm that answers this. It works backwards through the network from the loss — using the chain rule from calculus — calculating how much each individual weight contributed to the mistake. One backwards pass, all weights assessed simultaneously.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">backprop_blame.diagram</span>
+    </div>
+    <div class="mac-body">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Input</th>
+            <th>Current weight</th>
+            <th>Error signal</th>
+            <th>Severity</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Size (m²)</td>
+            <td class="col-weight">−0.31</td>
+            <td class="sig-high">−0.74</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:72px"><div class="bar-fill bar-high" style="width:90%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict high">way off</span></td>
+          </tr>
+          <tr>
+            <td>Bedrooms</td>
+            <td class="col-weight">+0.18</td>
+            <td class="sig-mid">−0.21</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:72px"><div class="bar-fill bar-mid" style="width:40%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict mid">slightly off</span></td>
+          </tr>
+          <tr>
+            <td>Distance to centre</td>
+            <td class="col-weight">+0.02</td>
+            <td class="sig-high">−0.68</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:72px"><div class="bar-fill bar-high" style="width:82%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict high">way off</span></td>
+          </tr>
+          <tr>
+            <td>Building age</td>
+            <td class="col-weight">+0.41</td>
+            <td class="sig-low">−0.08</td>
+            <td>
+              <div class="severity-bar">
+                <div class="bar-track" style="width:72px"><div class="bar-fill bar-low" style="width:12%"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict low">close</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="table-caption">Backprop assigns an error signal to each weight. Larger magnitude = more responsible for the €333k mistake.</p>
+    </div>
+  </div>
+
+  <p>Size and distance to centre are the main culprits — their weights are contributing the most to the error. Building age is barely at fault. Now that we know what's wrong, we can fix it.</p>
+
+  <h2>Gradient descent: the update rule</h2>
+
+  <p>Gradient descent is an optimisation algorithm. Its job is to use those error signals from backprop to update every weight in the direction that reduces the loss — and to do this by a controlled amount. It takes the blame assignment from backpropagation and turns it into concrete changes.</p>
+
+  <p>In our house model: gradient descent looks at each weight's error signal and asks — should this weight increase or decrease, and by how much? It then nudges every weight simultaneously. One small update across all weights, repeated across the entire dataset, many times over. That's training.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">gradient_descent_update.diagram</span>
+    </div>
+    <div class="mac-body">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Input</th>
+            <th>Old weight</th>
+            <th>Nudge</th>
+            <th>New weight</th>
+            <th>Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Size (m²)</td>
+            <td class="col-weight">−0.31</td>
+            <td class="nudge-pos">+0.15</td>
+            <td class="new-weight">−0.16</td>
+            <td style="font-size:0.62rem; color:var(--muted)">larger contribution</td>
+          </tr>
+          <tr>
+            <td>Bedrooms</td>
+            <td class="col-weight">+0.18</td>
+            <td class="nudge-pos">+0.04</td>
+            <td class="new-weight">+0.22</td>
+            <td style="font-size:0.62rem; color:var(--muted)">slight increase</td>
+          </tr>
+          <tr>
+            <td>Distance to centre</td>
+            <td class="col-weight">+0.02</td>
+            <td class="nudge-pos">+0.13</td>
+            <td class="new-weight">+0.15</td>
+            <td style="font-size:0.62rem; color:var(--muted)">larger contribution</td>
+          </tr>
+          <tr>
+            <td>Building age</td>
+            <td class="col-weight">+0.41</td>
+            <td class="nudge-pos">+0.02</td>
+            <td class="new-weight">+0.43</td>
+            <td style="font-size:0.62rem; color:var(--muted)">barely touched</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="table-caption">One gradient descent step. Weights most responsible for the error receive the largest nudge. Building age, barely at fault, is barely touched.</p>
+    </div>
+  </div>
+
+  <p>This is one update — one step. The model is now slightly less wrong. Run this process across 100,000 house examples, many times over, and the weights gradually converge toward values that produce accurate predictions.</p>
+
+  <h2>Learning rate: how much to nudge</h2>
+
+  <p>Each update, gradient descent nudges every weight by a small amount. The <strong>learning rate</strong> controls how small.</p>
+
+  <div class="example-thread">
+    <div class="label">Running example — learning rate</div>
+    Backprop tells us the size weight needs to increase. By how much?<br><br>
+    <strong>Learning rate too high:</strong> we nudge it by +0.80 — overshooting, the model now predicts <span class="val-bad">€720,000</span> and swings past the actual <span class="val-good">€380,000</span> in the other direction. It never settles.<br><br>
+    <strong>Learning rate too low:</strong> we nudge it by +0.001 — the direction is right but each step is so tiny that reaching a good solution takes an impractical number of iterations.<br><br>
+    <strong>Learning rate well chosen:</strong> +0.15 — meaningful progress each step, stable convergence.
+  </div>
+
+  <h2>What training actually looks like at scale</h2>
+
+  <p>One full pass through the entire training dataset is called an <strong>epoch</strong>. You rarely process the whole dataset at once — instead you use <strong>batches</strong> of examples (say, 32 or 256 houses at a time), running gradient descent after each batch. This is called stochastic gradient descent, and it's faster and more stable than waiting for the full dataset before updating.</p>
+
+  <p>Our house price model might train on 100,000 examples over a few epochs, taking minutes on a laptop. Training GPT-4 involved trillions of tokens, thousands of GPUs, and ran for months. The algorithm is identical. Only the scale differs.</p>
+
+  <div class="callout">
+    <strong>The key insight:</strong> There is no magic in training. It is a loop: predict, measure wrongness, run backprop to assign blame, use gradient descent to nudge every weight, repeat. What produces intelligence is running this loop billions of times with enough data and enough parameters.
+  </div>
+
+  <h2>Where the analogy breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this picture</div>
+    <p><strong>Real networks have billions of weights, not four.</strong> The tables above show four input weights for clarity. In practice a single layer might have millions of connections, and backprop computes gradients for all of them simultaneously.</p>
+    <p><strong>The loss landscape is not smooth.</strong> Real training involves cliffs, plateaus, and local minima. Modern training uses tricks — momentum, adaptive learning rates, weight decay — to navigate this. Gradient descent in its pure form is rarely used alone.</p>
+    <p><strong>Training doesn't find the global minimum.</strong> Models converge to "good enough" solutions, not optimal ones. For very large models, good enough turns out to be remarkably capable.</p>
+    <p><strong>The numbers here are illustrative.</strong> Actual weight values, error signals, and nudges in real networks are not this legible. They're high-dimensional vectors — meaningful to the maths, not to human inspection.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="#">What is a Parameter?</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+</script>
+
+</body>
+</html>
