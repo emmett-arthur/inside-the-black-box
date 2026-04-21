@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>What is a Neural Network? — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
@@ -11,12 +12,7 @@
   body { padding-bottom: 120px; }
 
   /* ── ARTICLE LAYOUT ── */
-  article {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 80px 24px 0;
-    animation: fadeUp 0.5s ease both 0.1s;
-  }
+  article { animation: fadeUp 0.5s ease both 0.1s; }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -235,7 +231,7 @@
 
   <p class="lede">The phrase gets thrown around constantly. Here's what's actually happening inside — told through the one analogy that gets closest to the truth, and where that analogy falls apart.</p>
 
-  <p>Before you can understand transformers, attention, RLHF, or any of the machinery that makes modern AI work, you need one thing: an honest picture of what a neural network actually is. Not what it feels like to use one — what it literally does.</p>
+  <p>Before you can understand <span class="term" data-def="The architecture used in almost all modern language models. Uses attention to process entire sequences at once rather than word-by-word.">transformers</span>, <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span>, <span class="term" data-def="Reinforcement Learning from Human Feedback. A training technique where humans rate model outputs, and those ratings train the model to be more helpful or safer.">RLHF</span>, or any of the machinery that makes modern AI work, you need one thing: an honest picture of what a neural network actually is. Not what it feels like to use one — what it literally does.</p>
 
   <p>The short answer: <strong>a neural network is a function that maps inputs to outputs by passing numbers through layers of simple mathematical operations, where the behaviour of those operations is shaped by billions of learned parameters called weights.</strong></p>
 
@@ -346,7 +342,7 @@
     </div>
   </div>
 
-  <p>These weights aren't hand-coded. Nobody sat down and decided that whiskers should score +2.8. <strong>The network learned those values</strong> by being shown millions of labelled examples and gradually adjusting every weight to reduce its mistakes. That process is called training — and it's the subject of the next article.</p>
+  <p>These weights aren't hand-coded. Nobody sat down and decided that whiskers should score +2.8. <strong>The network learned those values</strong> by being shown millions of labelled examples and gradually adjusting every weight to reduce its mistakes. That process is called <span class="term" data-def="The process of adjusting a model's weights by repeatedly predicting, measuring error, and nudging weights to reduce mistakes.">training</span> — and it's the subject of the next article.</p>
 
   <h2>The activation function: giving neurons opinions</h2>
 
@@ -355,7 +351,7 @@
   <p>Why does this matter? Without non-linearity, stacking dozens of layers would be mathematically equivalent to having just one layer. Non-linear activations are what let deep networks learn curves, corners, and complexity.</p>
 
   <div class="callout">
-    <strong>The key insight:</strong> A neural network isn't magic. It's a very large composition of very simple operations — multiply by a weight, add a bias, apply a threshold — repeated millions of times. Intelligence emerges from scale and the right training signal, not from any single clever component.
+    <strong>The key insight:</strong> A neural network isn't magic. It's a very large composition of very simple operations — multiply by a weight, add a <span class="term" data-def="A small offset value added at each neuron, separate from its connection weights. Lets the neuron shift its activation threshold independently of its inputs.">bias</span>, apply a threshold — repeated millions of times. Intelligence emerges from scale and the right training signal, not from any single clever component.
   </div>
 
   <h2>Where the analogy breaks down</h2>
@@ -371,7 +367,7 @@
 
   <p>When you interact with GPT-4, Claude, or any modern language model, you're talking to a neural network with hundreds of billions of weights arranged in a specific architecture called a <em>transformer</em>. All of its knowledge — about history, code, language, reasoning — lives in those numbers. There's no database being queried. No rules being followed. Just a very large, very well-trained function mapping your input to a probable output.</p>
 
-  <p>That's the foundation. Everything else — attention, training, alignment, agents — is built on top of this.</p>
+  <p>That's the foundation. Everything else — attention, training, <span class="term" data-def="The challenge of making AI systems behave according to human values and intentions — being helpful, honest, and avoiding harm.">alignment</span>, <span class="term" data-def="AI systems that take actions in the world — browsing the web, running code, making decisions — rather than just producing text.">agents</span> — is built on top of this.</p>
 
   <div class="next-article">
     <div>
@@ -395,6 +391,7 @@
     sessionStorage.setItem('bb_came_back', '1');
     setTimeout(() => { window.location.href = 'index.html'; }, 600);
   });
+  initTerms();
 </script>
 
 </body>

@@ -154,6 +154,22 @@ body {
 .back-link:hover .back-arrow    { transform: translateX(-3px); }
 .back-arrow                     { transition: transform 0.15s; }
 
+/* ── GLOSSARY TERMS ── */
+.term {
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 3px;
+}
+.term.active {
+  background: rgba(192,57,43,0.08);
+  border-radius: 2px;
+}
+[data-theme="dark"] .term.active {
+  background: rgba(224,90,78,0.12);
+}
+
 /* ── MAC WINDOW CHROME (diagram cards inside articles only) ──
    Light titlebar with coloured dots. Never used on the terminal
    header, which uses .terminal-titlebar / --window-bar instead.
@@ -183,4 +199,24 @@ body {
 .mac-body {
   background: var(--card-bg);
   padding: 28px 24px;
+  /* Safe zone: direct children have 24px horizontal protection from the frame.
+     For absolutely-positioned content (scale bars, etc.) use a wrapper with
+     margin: 0 48px minimum so edge-anchored elements don't bleed outside. */
+}
+
+/* ── SHARED ARTICLE BASE ── */
+article {
+  max-width: 680px;
+  margin: 0 auto;
+  /* 91px fixed header + 21px breathing room */
+  padding: 112px 24px 0;
+}
+
+/* ── DIAGRAM CAPTION (shared by all article diagram cards) ── */
+.table-caption {
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  margin-top: 14px;
 }

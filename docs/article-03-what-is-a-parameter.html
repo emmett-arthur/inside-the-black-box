@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>What is a Parameter? — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
@@ -11,12 +12,7 @@
   body { padding-bottom: 120px; }
 
   /* ── ARTICLE LAYOUT ── */
-  article {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 80px 24px 0;
-    animation: fadeUp 0.5s ease both 0.1s;
-  }
+  article { animation: fadeUp 0.5s ease both 0.1s; }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -60,74 +56,57 @@
   strong { font-weight: 600; }
   em     { font-style: italic; }
 
-  /* ── NETWORK SCHEMATIC ── */
-  .net-schematic {
+  /* ── NETWORK DIAGRAM ── */
+  .layers-grid {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0;
-    padding: 8px 0 4px;
-    flex-wrap: nowrap;
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
     overflow-x: auto;
   }
-  .net-box {
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
-    text-align: center;
-    font-family: 'IBM Plex Mono', monospace;
-    flex-shrink: 0;
-  }
-  .net-box-label {
-    font-size: 0.56rem;
-    letter-spacing: 0.14em;
+  .layer-col   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .layer-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 6px;
-  }
-  .net-box-body {
-    font-size: 0.68rem;
-    color: var(--terminal-accent);
     margin-bottom: 4px;
+    white-space: nowrap;
   }
-  .net-box-count {
-    font-size: 0.56rem;
+  .neuron {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
     color: var(--muted);
   }
-  .net-connector {
+  .neuron.active { border-color: var(--accent); background: rgba(192,57,43,0.07); color: var(--accent); }
+
+  /* Labeled weight columns between layers */
+  .weight-col {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 0 10px;
-    flex-shrink: 0;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 6px 0;
   }
-  .net-conn-label {
+  .wt-row  { display: flex; align-items: center; gap: 3px; }
+  .wt-line { width: 18px; height: 1px; background: var(--border); flex-shrink: 0; }
+  .wt-lbl  {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.58rem;
-    color: var(--text);
-    white-space: nowrap;
-  }
-  .net-conn-line {
-    width: 48px;
-    height: 1px;
-    background: var(--border);
-    position: relative;
-  }
-  .net-conn-line::after {
-    content: '';
-    position: absolute;
-    right: -4px;
-    top: -3px;
-    border: 3px solid transparent;
-    border-left: 5px solid var(--border);
-  }
-  .net-conn-ids {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.56rem;
+    font-size: 0.52rem;
     color: var(--muted);
     white-space: nowrap;
+    min-width: 22px;
   }
+
   .net-total {
     text-align: center;
     font-family: 'IBM Plex Mono', monospace;
@@ -147,7 +126,7 @@
   }
   .scale-heading {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.56rem;
+    font-size: 0.58rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
@@ -156,7 +135,7 @@
   .scale-bar-wrap {
     position: relative;
     height: 56px;
-    margin: 0 12px;
+    margin: 0 48px;
   }
   .scale-track {
     position: absolute;
@@ -183,7 +162,7 @@
   }
   .scale-label {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.56rem;
+    font-size: 0.58rem;
     color: var(--muted);
     text-align: center;
     position: absolute;
@@ -198,7 +177,7 @@
   }
   .scale-axis-label {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.54rem;
+    font-size: 0.58rem;
     color: var(--muted);
     text-align: right;
     margin-top: 4px;
@@ -213,10 +192,11 @@
   }
   .compare-table th {
     text-align: left;
-    font-weight: 500;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
-    color: var(--terminal-accent);
+    font-weight: 400;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
     padding: 0 16px 10px;
     border-bottom: 1px solid var(--border);
   }
@@ -343,7 +323,7 @@
 
   <p>In our house price model from the previous articles, every connection between neurons has a weight. The connection between "distance to centre" and the first hidden layer has a weight. The connection between that hidden layer and the output has a weight. Each of those is a parameter. Count every connection in the network and you have the parameter count.</p>
 
-  <p>A small network predicting house prices from four inputs might have a few hundred parameters. A large language model has billions — not because the basic unit is different, but because the network is vastly deeper and wider, with far more connections between far more neurons.</p>
+  <p>A small network predicting house prices from four inputs might have a few hundred parameters. A <span class="term" data-def="Large Language Model. A neural network with billions of parameters trained on vast text data. GPT-4, Claude, and LLaMA are examples.">large language model</span> has billions — not because the basic unit is different, but because the network is vastly deeper and wider, with far more connections between far more neurons.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -354,32 +334,35 @@
     </div>
     <div class="mac-body">
 
-      <!-- Network schematic -->
-      <div class="net-schematic">
-        <div class="net-box">
-          <div class="net-box-label">Input</div>
-          <div class="net-box-body">x₁ · x₂ · x₃ · x₄</div>
-          <div class="net-box-count">4 neurons</div>
+      <!-- Network diagram — each labeled line is one parameter -->
+      <div class="layers-grid">
+        <div class="layer-col">
+          <div class="layer-label">Input</div>
+          <div class="neuron active">x₁</div>
+          <div class="neuron active">x₂</div>
+          <div class="neuron active">x₃</div>
+          <div class="neuron active">x₄</div>
         </div>
-        <div class="net-connector">
-          <div class="net-conn-label">4 × 3 = 12 weights</div>
-          <div class="net-conn-line"></div>
-          <div class="net-conn-ids">w₁ … w₁₂</div>
+        <div class="weight-col">
+          <div class="wt-row"><div class="wt-line"></div><span class="wt-lbl">w₁</span></div>
+          <div class="wt-row"><div class="wt-line"></div><span class="wt-lbl">w₂</span></div>
+          <div class="wt-row"><div class="wt-line"></div><span class="wt-lbl">w₃</span></div>
+          <div class="wt-row"><div class="wt-line"></div><span class="wt-lbl">···</span></div>
         </div>
-        <div class="net-box">
-          <div class="net-box-label">Hidden</div>
-          <div class="net-box-body">h₁ · h₂ · h₃</div>
-          <div class="net-box-count">3 neurons</div>
+        <div class="layer-col">
+          <div class="layer-label">Hidden</div>
+          <div class="neuron active">h₁</div>
+          <div class="neuron active">h₂</div>
+          <div class="neuron active">h₃</div>
         </div>
-        <div class="net-connector">
-          <div class="net-conn-label">3 × 1 = 3 weights</div>
-          <div class="net-conn-line"></div>
-          <div class="net-conn-ids">w₁₃ · w₁₄ · w₁₅</div>
+        <div class="weight-col">
+          <div class="wt-row"><div class="wt-line"></div><span class="wt-lbl">w₁₃</span></div>
+          <div class="wt-row"><div class="wt-line"></div><span class="wt-lbl">w₁₄</span></div>
+          <div class="wt-row"><div class="wt-line"></div><span class="wt-lbl">w₁₅</span></div>
         </div>
-        <div class="net-box">
-          <div class="net-box-label">Output</div>
-          <div class="net-box-body">ŷ</div>
-          <div class="net-box-count">1 neuron</div>
+        <div class="layer-col">
+          <div class="layer-label">Output</div>
+          <div class="neuron active">ŷ</div>
         </div>
       </div>
       <div class="net-total">Total: 15 parameters</div>
@@ -408,7 +391,7 @@
         <div class="scale-axis-label">← log scale — each step is ×10 →</div>
       </div>
 
-      <p class="table-caption" style="margin-top:20px">Every connection is a parameter. The same unit — one learned number — spans eleven orders of magnitude between a toy model and a frontier LLM.</p>
+      <p class="table-caption">Every connection is a parameter. The same unit — one learned number — spans eleven orders of magnitude between a toy model and a frontier LLM.</p>
     </div>
   </div>
 
@@ -488,7 +471,7 @@
 
   <p>More parameters means more capacity. A network with ten million parameters can encode more complex patterns than one with ten thousand. At the scale of large language models, the relationship between parameter count and capability is real — models with more parameters tend to perform better on a wide range of tasks, all else being equal.</p>
 
-  <p>But all else is rarely equal. Training data matters as much as parameter count, perhaps more. A 7 billion parameter model trained carefully on high-quality, well-curated data can outperform a 70 billion parameter model trained carelessly on noisy data. Architecture matters too — the specific way neurons are connected and how attention is implemented affects what a model can learn, not just how much. And training method matters: two models with identical parameter counts and identical data will behave differently depending on whether and how they were fine-tuned or aligned after pre-training.</p>
+  <p>But all else is rarely equal. Training data matters as much as parameter count, perhaps more. A 7 billion parameter model trained carefully on high-quality, well-curated data can outperform a 70 billion parameter model trained carelessly on noisy data. Architecture matters too — the specific way neurons are connected and how <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span> is implemented affects what a model can learn, not just how much. And training method matters: two models with identical parameter counts and identical data will behave differently depending on whether and how they were <span class="term" data-def="Additional training on a smaller, more specific dataset after pre-training. Used to specialise a model — making it more helpful, safer, or domain-expert.">fine-tuned</span> or aligned after <span class="term" data-def="The initial large-scale phase where a model learns from enormous amounts of raw text. Produces a general-purpose model before any fine-tuning.">pre-training</span>.</p>
 
   <p>Parameter count became the headline number because it is easy to measure and easy to compare. It tells you something real about capacity. It does not tell you about the quality of training, the composition of data, the architecture choices, or how the model behaves on any specific task. A camera with 108 megapixels and a cheap plastic lens will still produce worse photographs than one with 12 megapixels and excellent optics.</p>
 
@@ -497,7 +480,7 @@
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this framing</div>
     <p><strong>No parameter encodes a discrete fact.</strong> The weight-as-knowledge framing is useful but it simplifies in ways worth naming. Knowledge is distributed across millions of weights simultaneously, and the same weight participates in encoding many different patterns at once. You cannot point to a single parameter and say "this one knows that Paris is the capital of France." It does not work that way.</p>
-    <p><strong>Parameter count says nothing about context window.</strong> How much text a model can hold in mind at once has a significant effect on what it can do in practice. Two models with the same parameter count can have very different context windows, and for many tasks the context window matters more than total parameter count.</p>
+    <p><strong>Parameter count says nothing about <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context window</span>.</strong> How much text a model can hold in mind at once has a significant effect on what it can do in practice. Two models with the same parameter count can have very different context windows, and for many tasks the context window matters more than total parameter count.</p>
     <p><strong>The megapixels analogy breaks down in one important direction.</strong> Unlike cameras, where the megapixel race has largely plateaued, the parameter race in AI is still live. The relationship between scale and capability has not yet hit a clear ceiling, and researchers continue to find that larger models develop qualitatively new capabilities that smaller models simply do not have — a phenomenon with no clean equivalent in consumer electronics.</p>
   </div>
 
@@ -522,6 +505,7 @@
     sessionStorage.setItem('bb_came_back', '1');
     setTimeout(() => { window.location.href = 'index.html'; }, 600);
   });
+  initTerms();
 </script>
 
 </body>

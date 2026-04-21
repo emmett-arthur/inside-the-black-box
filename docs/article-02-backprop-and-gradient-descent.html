@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How a Network Learns — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
@@ -17,12 +18,7 @@
   body { padding-bottom: 120px; }
 
   /* ── ARTICLE LAYOUT ── */
-  article {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 80px 24px 0;
-    animation: fadeUp 0.5s ease both 0.1s;
-  }
+  article { animation: fadeUp 0.5s ease both 0.1s; }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -280,7 +276,7 @@
 
   <p>We know the prediction was €333,000 wrong. But the network has dozens of weights — the one connecting "bedrooms" to the hidden layer, the one for "location", the one for "size", and so on. Which of them actually caused the error? And by how much?</p>
 
-  <p>Backpropagation is the algorithm that answers this. It works backwards through the network from the loss — using the chain rule from calculus — calculating how much each individual weight contributed to the mistake. One backwards pass, all weights assessed simultaneously.</p>
+  <p>Backpropagation is the algorithm that answers this. It works backwards through the network from the loss — using the <span class="term" data-def="A calculus identity that lets you compute how a change deep in the network affects the final loss. The mathematical engine behind backpropagation.">chain rule</span> from calculus — calculating how much each individual weight contributed to the mistake. One backwards pass, all weights assessed simultaneously.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -441,7 +437,7 @@
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this picture</div>
     <p><strong>Real networks have billions of weights, not four.</strong> The tables above show four input weights for clarity. In practice a single layer might have millions of connections, and backprop computes gradients for all of them simultaneously.</p>
-    <p><strong>The loss landscape is not smooth.</strong> Real training involves cliffs, plateaus, and local minima. Modern training uses tricks — momentum, adaptive learning rates, weight decay — to navigate this. Gradient descent in its pure form is rarely used alone.</p>
+    <p><strong>The loss landscape is not smooth.</strong> Real training involves cliffs, plateaus, and <span class="term" data-def="A point where every small weight change makes the loss worse, even if better solutions exist elsewhere. Large modern networks rarely get badly stuck.">local minima</span>. Modern training uses tricks — <span class="term" data-def="A training technique that carries a fraction of the previous weight update into the next step. Helps training move through flat regions and avoid oscillating.">momentum</span>, adaptive learning rates, <span class="term" data-def="A regularisation technique that gradually shrinks all weights during training. Prevents any single weight from dominating and reduces overfitting.">weight decay</span> — to navigate this. Gradient descent in its pure form is rarely used alone.</p>
     <p><strong>Training doesn't find the global minimum.</strong> Models converge to "good enough" solutions, not optimal ones. For very large models, good enough turns out to be remarkably capable.</p>
     <p><strong>The numbers here are illustrative.</strong> Actual weight values, error signals, and nudges in real networks are not this legible. They're high-dimensional vectors — meaningful to the maths, not to human inspection.</p>
   </div>
@@ -467,6 +463,7 @@
     sessionStorage.setItem('bb_came_back', '1');
     setTimeout(() => { window.location.href = 'index.html'; }, 600);
   });
+  initTerms();
 </script>
 
 </body>
