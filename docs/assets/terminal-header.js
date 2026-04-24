@@ -84,7 +84,7 @@ function initTOC() {
       .replace(/^-+|-+$/g, '');
   }
 
-  // Assign unique IDs where missing
+  // Assign unique IDs where missing; add scroll offset for fixed header
   const usedIds = new Set(
     Array.from(document.querySelectorAll('[id]')).map(el => el.id)
   );
@@ -97,6 +97,7 @@ function initTOC() {
       h.id = id;
       usedIds.add(id);
     }
+    h.style.scrollMarginTop = '112px'; // clears fixed terminal header
   });
 
   // Build sidebar DOM
@@ -105,10 +106,9 @@ function initTOC() {
   nav.id        = 'toc-sidebar';
   nav.setAttribute('aria-label', 'Table of contents');
 
-  const label = document.createElement('div');
-  label.className   = 'toc-label';
-  label.textContent = 'Contents';
-  nav.appendChild(label);
+  const rule = document.createElement('hr');
+  rule.className = 'toc-rule';
+  nav.appendChild(rule);
 
   const ul = document.createElement('ul');
   headings.forEach(h => {

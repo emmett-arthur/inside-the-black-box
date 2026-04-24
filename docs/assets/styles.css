@@ -154,6 +154,12 @@ body {
 .back-link:hover .back-arrow    { transform: translateX(-3px); }
 .back-arrow                     { transition: transform 0.15s; }
 
+/* ── MOBILE (≤600px) ── */
+@media (max-width: 600px) {
+  .titlebar-center { display: none; }
+  .prompt-left     { display: none; }
+}
+
 /* ── GLOSSARY TERMS ── */
 .term {
   cursor: pointer;
@@ -226,21 +232,17 @@ body {
 @media (max-width: 999px) {
   .toc-sidebar { display: none; }
 }
-.toc-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 10px;
-  padding-left: 10px;
+.toc-rule {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 10px 10px;
 }
 .toc-sidebar ul {
   list-style: none;
 }
 .toc-link {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   color: var(--muted);
   text-decoration: none;
   display: block;
