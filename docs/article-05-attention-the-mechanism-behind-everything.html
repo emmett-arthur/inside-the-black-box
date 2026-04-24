@@ -258,7 +258,7 @@
 
   <p>The problem is that bundle has a fixed size. It has to compress everything the model has read so far into the same number of dimensions, regardless of how long the sequence is. Read ten tokens, the bundle carries ten tokens worth of context. Read a thousand tokens, it still has the same size — which means earlier information gets increasingly compressed, overwritten, and eventually lost.</p>
 
-  <p>This is the fading memory problem. By the time an RNN reaches the end of a long sentence, the beginning has been diluted across hundreds of updates. The model can still see the recent past clearly, but the distant past has become a blur.</p>
+  <p>By the time an RNN reaches the end of a long sentence, the beginning has been diluted across hundreds of updates. The model can still see the recent past clearly. The distant past has become a blur.</p>
 
   <!-- DIAGRAM 1: Fading Memory -->
   <div class="mac-window">
@@ -291,25 +291,25 @@
 
   <h2>A single sentence that broke the old approach</h2>
 
-  <p>Consider this sentence: "The trophy didn't fit in the suitcase because it was too big."</p>
+  <p>Consider this sentence: <em>"The trophy didn't fit in the suitcase because it was too big."</em></p>
 
-  <p>What does "it" refer to? The trophy or the suitcase? You resolved this immediately and without effort. The trophy is too big to fit — so "it" refers to the trophy. The reasoning requires holding "trophy," "fit," "suitcase," and "too big" in mind simultaneously and reasoning about their relationships.</p>
+  <p>What does "it" refer to? The trophy or the suitcase? You resolved this immediately. The trophy is too big to fit, so "it" refers to the trophy. The reasoning requires holding "trophy," "fit," "suitcase," and "too big" in mind simultaneously and reasoning about their relationships.</p>
 
-  <p>An RNN processing this sentence left to right will encounter "it" near the end, by which point "trophy" — the key word it needs — has been compressed through several state updates and is competing with everything else the model has read. Language is full of these long-range dependencies: pronouns referring to nouns several clauses back, verbs whose meaning depends on subjects introduced earlier, negations that flip the meaning of something stated further up the paragraph. For a model to truly understand text rather than approximate it, it needs to be able to connect any two positions in a sequence directly — regardless of the distance between them.</p>
+  <p>An RNN processing this sentence left to right will encounter "it" near the end, by which point "trophy" has been compressed through several state updates and is competing with everything else the model has read. Language is full of these long-range dependencies: pronouns referring to nouns several clauses back, verbs whose meaning depends on subjects introduced earlier, negations that flip the meaning of something stated further up the paragraph. For a model to truly understand text rather than approximate it, it needs to connect any two positions in a sequence directly, regardless of the distance between them.</p>
 
   <h2>The core idea: every token looks at every other token</h2>
 
   <p>Attention solves the fading memory problem by abandoning sequential processing entirely. Instead of reading left to right and maintaining a running state, an attention mechanism allows every token in a sequence to look at every other token simultaneously and decide how much to weight each one.</p>
 
-  <p>When the model processes "it" in our sentence, attention doesn't force it to rely on whatever compressed memory has carried forward from the beginning. Instead, "it" can directly consult "trophy" — still fully present, not faded — and decide that it is the relevant word. The relationship is computed directly, not retrieved from a degraded memory.</p>
+  <p>When the model processes "it" in our sentence, attention does not force it to rely on whatever compressed memory has carried forward from the beginning. "It" can directly consult "trophy," still fully present, not faded, and decide that it is the relevant word. The relationship is computed directly, not retrieved from a degraded memory.</p>
 
   <h2>What an attention score actually is</h2>
 
-  <p>The result of this process is a number for every pair of tokens in the sequence: an attention score representing how much token A should attend to token B. Think of it as a rating from 0 to 1. A score close to 1 means "this relationship matters a lot." A score close to 0 means "mostly ignore this."</p>
+  <p>The result of this process is a number for every pair of tokens in the sequence: an attention score representing how much token A should attend to token B. Think of it as a rating from 0 to 1. A score close to 1 means this relationship matters a lot. A score close to 0 means mostly ignore this.</p>
 
-  <p>In our sentence, the model might compute scores from "it" to every other token and arrive at something like this: trophy scores 0.71, suitcase scores 0.18, big scores 0.07, everything else scores below 0.02. These scores don't have to be invented by hand — the model learns during training which patterns of attention are useful for predicting the next token correctly, and those patterns get baked into the weights.</p>
+  <p>In our sentence, the model might compute scores from "it" to every other token and arrive at something like: trophy scores 0.71, suitcase scores 0.18, big scores 0.07, everything else scores below 0.02. These scores are not invented by hand. The model learns during training which patterns of attention are useful for predicting the next token correctly, and those patterns get baked into the weights.</p>
 
-  <p>Once the scores are computed, they are used to produce a weighted blend — that is, a mixture where each token contributes in proportion to its score. The output representation of "it" ends up being mostly shaped by "trophy," somewhat shaped by "suitcase," barely influenced by anything else. The scores are first adjusted so they all add up to 1 (a standard mathematical step that makes the blending stable), and then the blending happens. The result is a richer representation of "it" than the raw token alone could carry — one that already encodes the likely answer to the coreference question.</p>
+  <p>Once the scores are computed, they produce a weighted blend, a mixture where each token contributes in proportion to its score. The output representation of "it" ends up being mostly shaped by "trophy," somewhat shaped by "suitcase," barely influenced by anything else. The scores are adjusted so they all add up to 1 (a standard mathematical step that keeps the blending stable), and then the blending happens. The result is a richer representation of "it" than the raw token alone could carry, one that already encodes the likely answer to the coreference question, meaning which word in the sentence "it" actually refers to.</p>
 
   <!-- DIAGRAM 2: Attention Scores -->
   <div class="mac-window">
@@ -392,9 +392,9 @@
 
   <h2>Multi-head attention: several perspectives at once</h2>
 
-  <p>A single round of attention produces one perspective on the relationships in a sequence. But language carries many kinds of relationships simultaneously. In our sentence, "it" and "trophy" are linked by coreference — "it" refers back to "trophy." But there are also grammatical relationships (which word is the subject, which is the object), semantic relationships (trophy and suitcase are both physical objects that can contain or be contained), and proximity relationships (words close together often relate to each other). A single pass of attention cannot capture all of these at once.</p>
+  <p>A single round of attention produces one perspective on the relationships in a sequence. But language carries many kinds of relationships simultaneously. In our sentence, "it" and "trophy" are linked by coreference. There are also grammatical relationships (which word is the subject, which is the object), semantic relationships (trophy and suitcase are both physical objects that can contain or be contained), and proximity relationships (words close together often relate to each other). A single pass of attention cannot capture all of these at once.</p>
 
-  <p>Multi-head attention runs the attention mechanism several times in parallel — each run is called a head — with different learned parameters each time. Each head develops its own pattern of what to attend to. One head might specialise in tracking grammatical structure. Another might focus on which words refer to the same thing. A third might weight nearby words more heavily. Their outputs are then combined — merged together — into a single richer representation.</p>
+  <p>Multi-head attention runs the attention mechanism several times in parallel, each run called a head, with different learned parameters each time. Each head develops its own pattern of what to attend to. One head might specialise in tracking grammatical structure. Another might focus on which words refer to the same thing. A third might weight nearby words more heavily. Their outputs get merged into a single richer representation.</p>
 
   <p>The model is not told what each head should learn. The specialisation emerges from training: each head finds the pattern that most reliably helps reduce prediction error on the training data.</p>
 
@@ -463,17 +463,17 @@
 
   <p>Attention did more than solve the fading memory problem. It changed what was computationally possible during training.</p>
 
-  <p>An RNN processes tokens sequentially — token 1, then token 2, then token 3. You cannot process token 3 until you have finished token 2. This means training on a long sequence requires many steps taken one after another, and you cannot speed this up by throwing more processors at it. The steps have to happen in order.</p>
+  <p>An RNN processes tokens sequentially, token 1, then token 2, then token 3. You cannot process token 3 until you have finished token 2. Training on a long sequence requires many sequential steps, and you cannot speed this up by throwing more processors at it.</p>
 
-  <p>The attention mechanism has no such constraint. Because every token attends to every other token independently, all of these computations can happen at the same time across many processors simultaneously. A sequence of a thousand tokens that would require a thousand sequential steps in an RNN can be processed in a single parallel sweep in a transformer. This is why transformers became feasible to train on the scale of the entire internet — the architecture was a natural fit for what modern GPU hardware is designed to do.</p>
+  <p>The attention mechanism has no such constraint. Because every token attends to every other token independently, all of these computations can happen simultaneously across many processors. A sequence of a thousand tokens that would require a thousand sequential steps in an RNN can be processed in a single parallel sweep in a transformer. This is why transformers became feasible to train on the scale of the entire internet, the architecture was a natural fit for what modern GPU hardware is designed to do.</p>
 
-  <p>The 2017 paper that introduced the transformer was titled "Attention Is All You Need." The title was a provocation: you do not need recurrence, you do not need sequential processing. Attention, applied carefully, is sufficient. The years since have proved the claim correct in a way even the authors likely did not anticipate.</p>
+  <p>The 2017 paper that introduced the transformer was titled <em>Attention Is All You Need</em>. The title was a provocation: you do not need recurrence, you do not need sequential processing. Attention, applied carefully, is sufficient. The years since have proved the claim correct in a way even the authors likely did not anticipate.</p>
 
   <h2>Where this picture breaks down</h2>
 
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this picture</div>
-    <p><strong>The "every token looks at every other token" framing is accurate but it obscures a real cost.</strong> Attention scales quadratically with sequence length — which is just a way of saying that doubling the number of tokens roughly quadruples the computation required. This is why <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context windows</span> have limits: at some point the computation becomes prohibitively expensive, and significant research effort has gone into making attention more efficient for very long sequences.</p>
+    <p><strong>The "every token looks at every other token" framing is accurate but it obscures a real cost.</strong> Attention scales quadratically with sequence length, meaning double the number of tokens and you roughly quadruple the computation required. This is why <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context windows</span> have limits: at some point the computation becomes prohibitively expensive, and significant research effort has gone into making attention more efficient for very long sequences.</p>
     <p><strong>The heads-as-specialists framing — "this head tracks grammar, that one tracks coreference" — is a useful intuition but an oversimplification.</strong> Attention heads do not have clean, human-interpretable roles. Researchers have found heads that appear to specialise, but most heads perform computations that resist tidy description. The specialisation is real but messier than the diagram suggests.</p>
     <p><strong>The scores-as-understanding framing is the deepest simplification.</strong> A high attention score between "it" and "trophy" means the model has learned that this connection is statistically useful for predicting what comes next — not that it has resolved the coreference the way a human reader does. The behaviour looks like understanding. Whether it constitutes understanding is a harder question, and one this article cannot settle.</p>
   </div>

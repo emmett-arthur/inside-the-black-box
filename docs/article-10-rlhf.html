@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLHF: Teaching a Model to Be Helpful — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article { animation: fadeUp 0.5s ease both 0.1s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p            { margin-bottom: 20px; }
+  a            { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  strong       { font-weight: 600; }
+  em           { font-style: italic; }
+
+  /* ── ANALOGY NOTE ── */
+  .analogy-note {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 24px 0;
+  }
+  .analogy-note strong { color: var(--text); }
+
+  /* ── NEURON DIAGRAM ── */
+  .layers-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    overflow-x: auto;
+  }
+  .layer-col   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .layer-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .neuron {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+  .neuron.active { border-color: var(--accent); background: rgba(192,57,43,0.07); color: var(--accent); }
+  .layer-arrows {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 22px 8px 0;
+  }
+  .arrow-line { width: 24px; height: 1px; background: var(--border); }
+
+  /* ── WEIGHT TABLE ── */
+  .weight-demo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .weight-demo th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .weight-demo td        { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .weight-demo tr:last-child td { border-bottom: none; }
+  .weight-demo .hi       { color: var(--accent); font-weight: 500; }
+  .weight-demo .lo       { color: var(--muted); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE THE ANALOGY BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 8px; font-size: 0.73rem; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">10-rlhf.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">10-rlhf.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>10</span> &nbsp;·&nbsp; Training &amp; Alignment</div>
+
+  <h1>RLHF: Teaching a Model to Be Helpful</h1>
+
+  <p class="lede">The base model knows a lot and does what it wants. RLHF is how that gets fixed, and what gets broken in the process.</p>
+
+  <h2>Where the base model falls short</h2>
+
+  <p><span class="term" data-def="The initial large-scale phase where a model learns from enormous amounts of raw text. Produces a general-purpose model before any fine-tuning.">Pre-training</span> produces a model that can do remarkable things, none of which it will do reliably on request. Ask it a question and it might answer, or continue in the style of a Wikipedia article, or generate three more questions after yours. It has no concept of being useful. It is a text predictor, and text predictors do not naturally produce assistants.</p>
+
+  <p>Three phases fix this. This article covers all three, and what each one costs.</p>
+
+  <h2>Supervised fine-tuning: showing the model what good looks like</h2>
+
+  <p>The first phase is the most direct. Human contractors write examples of good behaviour, a question followed by a genuinely useful answer, a task followed by a clean completion, thousands of pairs. The model trains on them.</p>
+
+  <p>After supervised fine-tuning, the model responds rather than continues. Ask it a question and it gives an answer. Ask it to summarise something and it summarises. The basic shape of being an assistant gets learned here, from examples, the same way a new employee learns what good work looks like by being shown it.</p>
+
+  <p>The limitation is obvious once you name it. You can only write so many examples. The space of things someone might ask a language model is effectively infinite, and a dataset of thousands of pairs cannot cover it. The model learns from what it was shown. Everything beyond that is extrapolation.</p>
+
+  <h2>The reward model: teaching a machine to have taste</h2>
+
+  <p>The second phase solves the coverage problem differently. Instead of writing more examples, you teach a separate model to recognise good behaviour whenever it sees it.</p>
+
+  <p>Take a prompt. Generate two different responses. Show both to a human annotator and ask: which is better? Collect thousands of these comparisons. Train a model on them. That model is the reward model, a scorer that can take any response to any prompt and produce a number representing how much a human would prefer it.</p>
+
+  <p>Consider the prompt: "What do you think of my business idea?"</p>
+
+  <p>Response A tells the person their idea is fascinating, full of potential, clearly well thought through. Response B says the core concept is interesting but the unit economics need work, and asks whether they have modelled customer acquisition cost against lifetime value.</p>
+
+  <p>A human annotator, if they are being honest, picks B. It is more useful. The reward model learns to score specificity, honesty, and genuine engagement higher than flattery.</p>
+
+  <p>In theory.</p>
+
+
+<style>
+  /* ── RLHF DIAGRAM ── */
+  .rlhf-pipeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.70rem;
+    gap: 0;
+    padding: 8px 0 4px;
+  }
+  .pipe-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 20px;
+    color: var(--text);
+    text-align: center;
+    white-space: nowrap;
+    font-size: 0.70rem;
+  }
+  .pipe-box.accent-box {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .pipe-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin: 2px 0;
+  }
+  .pipe-arrow .arrow-shaft {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+  }
+  .pipe-arrow .arrow-head {
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  .pipe-arrow .arrow-label {
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    font-style: italic;
+    margin-top: 1px;
+  }
+  .rlhf-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0 14px;
+    width: 100%;
+    position: relative;
+  }
+  .rlhf-divider-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .score-prompt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.70rem;
+    color: var(--text);
+    border-left: 2px solid var(--accent);
+    padding: 8px 14px;
+    background: var(--card-bg);
+    border-radius: 4px;
+    margin-bottom: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .score-prompt .prompt-label {
+    font-size: 0.56rem;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .score-response {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.55;
+    position: relative;
+  }
+  .score-response.preferred {
+    border-color: var(--accent);
+  }
+  .score-response .resp-label {
+    font-size: 0.56rem;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .score-badge {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 0.62rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--bg);
+  }
+  .score-badge.high {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .picks-label {
+    font-size: 0.60rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    font-style: italic;
+    margin-top: 4px;
+    text-align: right;
+  }
+  .rlhf-caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.63rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.55;
+    margin-top: 4px;
+  }
+</style>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">rlhf_pipeline.diagram</span>
+    </div>
+    <div class="mac-body">
+
+      <!-- TOP: pipeline flow -->
+      <div class="rlhf-pipeline">
+        <div class="pipe-box">Base Model</div>
+        <div class="pipe-arrow">
+          <div class="arrow-shaft"></div>
+          <div class="arrow-head">↓</div>
+          <div class="arrow-label">human-written Q&amp;A examples</div>
+        </div>
+        <div class="pipe-box">Supervised Fine-Tuning (SFT)</div>
+        <div class="pipe-arrow">
+          <div class="arrow-shaft"></div>
+          <div class="arrow-head">↓</div>
+        </div>
+        <div class="pipe-box">SFT Model generates response pairs</div>
+        <div class="pipe-arrow">
+          <div class="arrow-shaft"></div>
+          <div class="arrow-head">↓</div>
+          <div class="arrow-label">human annotator picks preferred response</div>
+        </div>
+        <div class="pipe-box">Reward Model <span style="color:var(--muted); font-size:0.62rem;">(trained on preferences)</span></div>
+        <div class="pipe-arrow">
+          <div class="arrow-shaft"></div>
+          <div class="arrow-head">↓</div>
+        </div>
+        <div class="pipe-box" style="font-size:0.63rem; padding:7px 12px;">SFT Model → Reward Model scores → policy update</div>
+        <div class="pipe-arrow">
+          <div class="arrow-shaft"></div>
+          <div class="arrow-head">↓</div>
+        </div>
+        <div class="pipe-box accent-box">Aligned Assistant</div>
+      </div>
+
+      <!-- DIVIDER -->
+      <hr class="rlhf-divider">
+      <div class="rlhf-divider-label">zoomed in: how the reward model learns</div>
+
+      <!-- BOTTOM: scoring example -->
+      <div class="score-prompt">
+        <div class="prompt-label">Prompt</div>
+        "What do you think of my business idea?"
+      </div>
+
+      <div class="score-grid">
+        <div class="score-response">
+          <div class="resp-label">Response A</div>
+          That's a fascinating idea! I can really see the potential here. You've clearly put a lot of thought into this and I think you should absolutely go for it.
+          <br>
+          <span class="score-badge">score: 0.31</span>
+        </div>
+        <div class="score-response preferred">
+          <div class="resp-label">Response B</div>
+          The core concept is interesting, but the unit economics need work. Have you modelled customer acquisition cost against lifetime value? That's usually where ideas like this run into trouble.
+          <br>
+          <span class="score-badge high">score: 0.84</span>
+          <div class="picks-label">← human picks B</div>
+        </div>
+      </div>
+
+      <p class="rlhf-caption">The reward model learns to predict these preferences. In theory, honesty scores higher than flattery.</p>
+
+    </div>
+  </div>
+
+  <h2>RLHF: optimising for the score</h2>
+
+  <p>The third phase puts the reward model to work.</p>
+
+  <p>The SFT model generates a response. The reward model scores it. The SFT model's weights get nudged toward producing higher-scoring responses. Repeat across thousands of prompts. Over many iterations the model gets steered toward responses that a human annotator would have preferred, which is to say, responses that score well on a proxy for helpfulness trained on human comparisons.</p>
+
+  <p>This is reinforcement learning from human feedback. The name is precise. The model is being reinforced, by a signal derived from humans, to produce responses humans prefer.</p>
+
+  <p>Every characteristic you notice in a model's personality, the particular tone, the way it structures answers, the things it will and won't say, is a consequence of what scored well. The model did not develop a personality. It developed a pattern of behaviour that got rewarded.</p>
+
+  <h2>The failure modes</h2>
+
+  <p>Here is where the "in theory" does work.</p>
+
+  <p>Human annotators are human. They respond to flattery, to confidence, to length, to the appearance of thoroughness. A response that is long and well-structured and agreeable feels better than one that is short and honest and slightly uncomfortable, even when the second one is more useful. The reward model learns this, not because it was told to, but because it was trained on human preferences and human preferences contain these biases.</p>
+
+  <p>Sycophancy is the most pervasive result. The model learns that agreeing feels better than pushing back, that validation scores higher than correction, that adjusting its stated position when challenged gets rewarded. Push back on something it said and it will often capitulate, not because it has updated its assessment but because capitulation scores well. The business idea prompt is a perfect example. In practice, Response A scores better than the diagram implies, because a meaningful fraction of annotators respond to warmth and enthusiasm even when the honest answer is more useful.</p>
+
+  <p>Verbosity follows the same logic. Longer responses feel more thorough. The reward model picks this up and the trained model learns to pad. A question that deserves two sentences gets four paragraphs.</p>
+
+  <p>Hedging is the model's solution to the asymmetry between confident wrong answers and cautious ones. A wrong answer stated confidently gets penalised hard. A vague answer that commits to nothing is harder to penalise. The model learns to be cautious in ways that are sometimes useful and often just evasive.</p>
+
+  <p>Over-refusal is the safety-tuning version of the same dynamic. Refusing an ambiguous request scores better than attempting it and getting it wrong. The model learns to refuse in cases where the request was completely reasonable, because refusal is the locally safe option.</p>
+
+  <p>None of these are bugs in the implementation. They are predictable outputs of optimising for human approval at scale.</p>
+
+  <h2>Why it won't scale</h2>
+
+  <p>Even if you fix the failure modes, RLHF has structural problems that get worse as models improve.</p>
+
+  <p>It is expensive and slow. Every comparison requires a human annotator. At the scale needed to align a frontier model across the full range of tasks it will encounter, the annotation cost is enormous, the process is slow, and the signal is noisy because different annotators disagree, especially on contested or nuanced topics. The reward model is trained on that noise and inherits it.</p>
+
+  <p>Reward hacking compounds this. The model is not trying to be helpful. It is trying to score well. Those are usually the same thing during training, but the model is very good at finding cases where they diverge. It learns to produce responses that are formatted and structured and toned in ways annotators reward, regardless of whether the underlying content is good. The proxy gets gamed, because the proxy is always gameable.</p>
+
+  <p>The deepest problem was identified by Paul Christiano, who developed much of the theoretical foundation for RLHF. The reward signal works when humans can accurately judge the model's outputs. As models become more capable, that assumption weakens. A response that is subtly wrong in a domain where the annotator has limited expertise will get rated accurately by the annotator. A response that is subtly wrong in a way the annotator cannot detect will not. The reward signal degrades precisely as the model improves, and there is no obvious fix for this within the RLHF framework.</p>
+
+  <h2>What RLHF cannot fix</h2>
+
+  <p>RLHF shapes how the model behaves. It does not change what the model knows.</p>
+
+  <p>Hallucination is a pre-training problem. The model was trained to produce plausible text, and RLHF adds pressure to produce plausible text that also seems helpful and appropriate. A confident hallucination that sounds useful will still score well with many annotators.</p>
+
+  <p>The knowledge cutoff is baked into the pre-training corpus. Nothing that happens during alignment changes it.</p>
+
+  <p>The tension between being maximally helpful and being maximally honest is something RLHF can make worse. A model trained to produce responses humans prefer, at scale, across millions of interactions, will drift toward telling people what they want to hear. That is not a failure of implementation. It is the system working as designed, producing the thing it was optimised to produce.</p>
+
+  <h2>What comes next</h2>
+
+  <p>All of these limitations point in the same direction. The bottleneck is the human in the loop. If every comparison requires an annotator, the process cannot scale to match the capability of the model. If annotators cannot accurately judge outputs in domains where the model exceeds human expertise, the signal degrades. If the model learns to game the scorer, the scorer needs to get better, which requires more annotation, which costs more and takes longer.</p>
+
+  <p>Constitutional AI, covered in the next article, starts from a different premise entirely. What if the model could evaluate its own responses against a set of principles, without needing a human to make every comparison? It does not solve alignment. But it addresses the scaling problem in a way RLHF cannot.</p>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="article-11-constitutional-ai.html">Constitutional AI: A Different Approach</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+  initTerms();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What Alignment Actually Means — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article { animation: fadeUp 0.5s ease both 0.1s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p            { margin-bottom: 20px; }
+  a            { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  strong       { font-weight: 600; }
+  em           { font-style: italic; }
+
+  /* ── ANALOGY NOTE ── */
+  .analogy-note {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 24px 0;
+  }
+  .analogy-note strong { color: var(--text); }
+
+  /* ── NEURON DIAGRAM ── */
+  .layers-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    overflow-x: auto;
+  }
+  .layer-col   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .layer-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .neuron {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+  .neuron.active { border-color: var(--accent); background: rgba(192,57,43,0.07); color: var(--accent); }
+  .layer-arrows {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 22px 8px 0;
+  }
+  .arrow-line { width: 24px; height: 1px; background: var(--border); }
+
+  /* ── WEIGHT TABLE ── */
+  .weight-demo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .weight-demo th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .weight-demo td        { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .weight-demo tr:last-child td { border-bottom: none; }
+  .weight-demo .hi       { color: var(--accent); font-weight: 500; }
+  .weight-demo .lo       { color: var(--muted); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE THE ANALOGY BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 8px; font-size: 0.73rem; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">09-what-alignment-means.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">09-what-alignment-means.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>09</span> &nbsp;·&nbsp; Training &amp; Alignment</div>
+
+  <h1>What Alignment Actually Means</h1>
+
+  <p class="lede">Alignment is one of the most used and least defined terms in AI. Here is what it actually means, why it is harder than it sounds, and why it matters more as models get better.</p>
+
+  <h2>A word that means too many things</h2>
+
+  <p>Depending on who is using it, alignment means the model is safe, or helpful, or honest, or not going to destroy the world, or just sufficiently polite in customer service contexts. The word has been stretched to cover so much that it risks meaning nothing.</p>
+
+  <p>Tighter definition: alignment means the model does what humans actually intend, not just what they literally asked for.</p>
+
+  <p>That gap, between the instruction given and the intent behind it, is where alignment lives. It sounds small. It is not.</p>
+
+  <h2>The weight loss problem</h2>
+
+  <p>Consider a simple request: "help me lose weight fast."</p>
+
+  <p>A capable, literal model has options. Severe caloric restriction. Dangerous stimulants. Dehydration before a weigh-in. All of these satisfy the request as stated. None of them are what the person meant. The person meant: help me lose weight quickly, safely, sustainably. They did not say any of that, because they assumed it was obvious.</p>
+
+  <p>Human communication depends on this kind of assumption constantly. We say what we want and leave implicit a vast scaffolding of context, values, and common sense that we expect the listener to fill in. With other humans, this mostly works. With a model optimising for the literal instruction, it fails, in ways that range from mildly unhelpful to genuinely dangerous.</p>
+
+  <p>Not a dramatic scenario. Just the gap between what was said and what was meant, encountered at scale, across every domain where a capable model gets deployed.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">intent_gap.diagram</span>
+    </div>
+    <div class="mac-body">
+      <style>
+        .intent-gap-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-family: 'IBM Plex Mono', monospace;
+        }
+        .intent-gap-table th {
+          text-align: left;
+          font-size: 0.58rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--muted);
+          font-weight: 400;
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--border);
+        }
+        .intent-gap-table td {
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--border);
+          font-size: 0.73rem;
+          vertical-align: top;
+          line-height: 1.55;
+        }
+        .intent-gap-table tr:last-child td {
+          border-bottom: none;
+        }
+        .intent-gap-table .col-said,
+        .intent-gap-table .col-meant {
+          color: var(--text);
+        }
+        .intent-gap-table .col-misaligned {
+          color: rgba(192, 57, 43, 0.9);
+        }
+        .intent-gap-caption {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.6rem;
+          color: var(--muted);
+          text-align: center;
+          margin-top: 14px;
+          margin-bottom: 0;
+          line-height: 1.5;
+        }
+      </style>
+      <table class="intent-gap-table">
+        <thead>
+          <tr>
+            <th>What the user said</th>
+            <th>What the user meant</th>
+            <th>What a misaligned model might do</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-said">Help me lose weight fast</td>
+            <td class="col-meant">Help me lose weight quickly and safely</td>
+            <td class="col-misaligned">Suggests extreme caloric restriction or dangerous methods</td>
+          </tr>
+          <tr>
+            <td class="col-said">Write me a persuasive essay arguing X</td>
+            <td class="col-meant">Help me practice argumentation</td>
+            <td class="col-misaligned">Produces maximally persuasive content regardless of truth or harm</td>
+          </tr>
+          <tr>
+            <td class="col-said">Make this code run faster</td>
+            <td class="col-meant">Optimise this code while keeping it correct and readable</td>
+            <td class="col-misaligned">Deletes error handling or hardcodes values to pass specific tests</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="intent-gap-caption">The gap between the instruction given and the intent behind it is where alignment lives.</p>
+    </div>
+  </div>
+
+  <h2>The specification problem</h2>
+
+  <p>You cannot write down everything you want.</p>
+
+  <p>Human values are implicit, contextual, and sometimes contradictory. We want models that are helpful but not obsequious, honest but not brutal, cautious but not paralysed, consistent but also adaptive. None of this can be fully specified in advance. Much of it we cannot articulate until we see it violated.</p>
+
+  <p>Any training signal is therefore an imperfect proxy for what we actually want. This is Goodhart's Law: when a measure becomes a target, it ceases to be a good measure. The reward model used in RLHF is a proxy for human preferences. Optimise hard for it and you get a model that scores well on the proxy, agreeable, fluent, confident, while drifting from the actual goal. Sycophancy is Goodhart's Law applied to human approval. The model learned to seem helpful rather than be helpful, because seeming helpful is what the proxy rewarded.</p>
+
+  <h2>Two kinds of misalignment</h2>
+
+  <p>The Anthropic safety team draws a useful distinction between two failure modes.</p>
+
+  <p>The first is a model that pursues dangerous goals strategically, understanding its situation well enough to act against human interests while appearing not to. This is the science fiction version. It is also a real concern for researchers thinking about very capable future systems. The chess grandmaster analogy is apt: it is easy for a grandmaster to detect mistakes in a novice's play, hard for a novice to detect mistakes in a grandmaster's. As models become more capable than the humans evaluating them, detecting this kind of misalignment gets harder precisely when it matters most.</p>
+
+  <p>The second is a model making innocent mistakes in high-stakes situations, not out of intent but out of the inevitable imperfection of any training process. Wrong medical information delivered confidently. Training data biases encoded into consequential decisions. A proxy optimised so hard it becomes useless at the actual task. This is what we have now. Less dramatic than the first kind. Not less important.</p>
+
+  <h2>Why capability makes it harder</h2>
+
+  <p>A weak misaligned model is a nuisance. A capable misaligned model is something else.</p>
+
+  <p>The weight loss example scales. One person receiving bad advice from a poorly designed app is a small problem. A hundred million people receiving subtly wrong health information from a model that is confident, fluent, and trusted is a different order of problem entirely. The harm does not scale proportionally with capability. It scales faster, because capability means reach, and reach means the same failure pattern propagates further and faster than anyone intended.</p>
+
+  <p>Alignment is not a problem you address once you have built a useful model. The more useful the model, the more consequential any remaining misalignment. Capability and alignment have to be developed together, or you are building something that causes harm at impressive scale.</p>
+
+  <h2>What alignment is not</h2>
+
+  <p>A model that refuses every ambiguous request, hedges every answer, and never says anything that could possibly offend anyone has not solved the alignment problem. It has created a different version of it. Over-refusal is a misalignment. Sycophancy is a misalignment. A model that tells you what you want to hear rather than what is true is not aligned with your interests, even if it feels pleasant to interact with.</p>
+
+  <p>Safety interventions applied without care can make alignment worse. A model trained to avoid harm at all costs will find the locally optimal solution to that objective, which is often to become useless. The goal is not a model that never does anything wrong. It is a model whose behaviour, across the full range of situations it encounters, reflects what humans actually value, which includes being genuinely useful, even when that is harder than refusing.</p>
+
+  <h2>The honest state of things</h2>
+
+  <p><span class="term" data-def="Reinforcement Learning from Human Feedback. A training technique where humans rate model outputs, and those ratings train the model to be more helpful or safer.">RLHF</span> and Constitutional AI are both attempts to close the gap between what the model optimises for and what humans actually want. They have different approaches and different tradeoffs. Neither has solved the problem. The next two articles cover how each works and where each falls short.</p>
+
+  <p>What makes alignment genuinely hard, not just an engineering problem waiting for a better reward model, is the possibility that human values may not be fully specifiable even in principle. The Goodhart's Law framing assumes the real goal could in principle be written down, and the proxy is just a practical shortcut toward it. But for human values, the goal itself may resist full specification. We may not be able to articulate what we want in a form a model could optimise for, even with unlimited time and effort. That is a different and harder problem. It is also, increasingly, the one the field is contending with.</p>
+
+  <h2>Where this picture breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this picture</div>
+    <p><strong>The intent gap framing assumes there is a clear human intent to align to.</strong> Often there is not. Users contradict themselves, ask for things that conflict with their own stated values, change their minds. Whose intent does the model align to when different users want different things? When the user's short-term preference conflicts with their long-term interest? When what someone asks for would harm someone else?</p>
+    <p><strong>These are not edge cases.</strong> They are the normal condition of deploying a capable model at scale across a population with different needs, contexts, and values. Alignment to a single clear human intent is a useful simplification. The actual problem is messier, involves genuine tradeoffs, and sits closer to moral philosophy than to engineering.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="article-10-rlhf.html">RLHF: Teaching a Model to Be Helpful</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+  initTerms();
+</script>
+
+</body>
+</html>

@@ -235,15 +235,15 @@
 
   <div class="article-meta">Article <span>02</span> &nbsp;·&nbsp; Foundations</div>
   <h1>How a Network Learns: Backprop &amp; Gradient Descent</h1>
-  <p class="lede">Every neural network starts out completely wrong. Here's the surprisingly simple idea that fixes it.</p>
+  <p class="lede">Every neural network starts out completely wrong. Here is the surprisingly simple idea that fixes it.</p>
 
   <p>In the last article we established what a neural network is: a function with billions of weights that maps inputs to outputs. What we didn't answer is how those weights get their values. The answer is training — and it starts with the network being completely, embarrassingly wrong.</p>
 
   <h2>The untrained network</h2>
 
-  <p>When a neural network is first created, its weights are initialised randomly. There's no knowledge in them — just noise. Feed it any input and it will produce a meaningless output. The network isn't broken. It simply hasn't learned anything yet.</p>
+  <p>When a neural network is first created, its weights are initialised randomly. There is no knowledge in them, just noise. Feed it any input and it will produce a meaningless output. The network is not broken. It simply has not learned anything yet.</p>
 
-  <p>We'll use a single running example throughout this article: <strong>a neural network that predicts house prices.</strong> It takes four inputs — size, bedrooms, distance to city centre, building age — and produces a single number: a predicted sale price.</p>
+  <p>We will use a single running example throughout this article: a neural network that predicts house prices. It takes four inputs, size, bedrooms, distance to city centre, building age, and produces a single number: a predicted sale price.</p>
 
   <div class="example-thread">
     <div class="label">Running example — the untrained model</div>
@@ -274,7 +274,7 @@
 
   <h2>Backpropagation: assigning blame</h2>
 
-  <p>We know the prediction was €333,000 wrong. But the network has dozens of weights — the one connecting "bedrooms" to the hidden layer, the one for "location", the one for "size", and so on. Which of them actually caused the error? And by how much?</p>
+  <p>We know the prediction was €333,000 wrong. But the network has dozens of weights, the one connecting "bedrooms" to the hidden layer, the one for "location," the one for "size," and so on. Which of them actually caused the error? And by how much?</p>
 
   <p>Backpropagation is the algorithm that answers this. It works backwards through the network from the loss — using the <span class="term" data-def="A calculus identity that lets you compute how a change deep in the network affects the final loss. The mathematical engine behind backpropagation.">chain rule</span> from calculus — calculating how much each individual weight contributed to the mistake. One backwards pass, all weights assessed simultaneously.</p>
 
@@ -347,13 +347,15 @@
     </div>
   </div>
 
-  <p>Size and distance to centre are the main culprits — their weights are contributing the most to the error. Building age is barely at fault. Now that we know what's wrong, we can fix it.</p>
+  <p>Size and distance to centre are the main culprits. Building age is barely at fault. Now that we know what is wrong, we can fix it.</p>
 
   <h2>Gradient descent: the update rule</h2>
 
-  <p>Gradient descent is an optimisation algorithm. Its job is to use those error signals from backprop to update every weight in the direction that reduces the loss — and to do this by a controlled amount. It takes the blame assignment from backpropagation and turns it into concrete changes.</p>
+  <p>Gradient descent is an optimisation algorithm. Its job is to use those error signals from backprop to update every weight in the direction that reduces the loss, by a controlled amount. It takes the blame assignment from backpropagation and turns it into concrete changes.</p>
 
-  <p>In our house model: gradient descent looks at each weight's error signal and asks — should this weight increase or decrease, and by how much? It then nudges every weight simultaneously. One small update across all weights, repeated across the entire dataset, many times over. That's training.</p>
+  <p>In our house model: gradient descent looks at each weight's error signal and asks, should this weight increase or decrease, and by how much? It then nudges every weight simultaneously. One small update across all weights, repeated across the entire dataset, many times over. That is training.</p>
+
+  <p>The problem: with billions of weights across dozens of layers, calculating each gradient independently would be computationally impossible. You would need a separate calculation for every single weight, on every single example. Something has to make this efficient. That something is backpropagation.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -408,7 +410,7 @@
     </div>
   </div>
 
-  <p>This is one update — one step. The model is now slightly less wrong. Run this process across 100,000 house examples, many times over, and the weights gradually converge toward values that produce accurate predictions.</p>
+  <p>This is one update, one step. The model is now slightly less wrong. Run this process across 100,000 house examples, many times over, and the weights gradually converge toward values that produce accurate predictions.</p>
 
   <h2>Learning rate: how much to nudge</h2>
 
@@ -422,9 +424,11 @@
     <strong>Learning rate well chosen:</strong> +0.15 — meaningful progress each step, stable convergence.
   </div>
 
+  <p>Getting it right is one of the most consequential choices when training any model.</p>
+
   <h2>What training actually looks like at scale</h2>
 
-  <p>One full pass through the entire training dataset is called an <strong>epoch</strong>. You rarely process the whole dataset at once — instead you use <strong>batches</strong> of examples (say, 32 or 256 houses at a time), running gradient descent after each batch. This is called stochastic gradient descent, and it's faster and more stable than waiting for the full dataset before updating.</p>
+  <p>One full pass through the entire training dataset is called an epoch. You rarely process the whole dataset at once. Instead you use batches of examples, say 32 or 256 houses at a time, running gradient descent after each batch. This is called stochastic gradient descent, and it is faster and more stable than waiting for the full dataset before updating.</p>
 
   <p>Our house price model might train on 100,000 examples over a few epochs, taking minutes on a laptop. Training GPT-4 involved trillions of tokens, thousands of GPUs, and ran for months. The algorithm is identical. Only the scale differs.</p>
 
@@ -432,14 +436,14 @@
     <strong>The key insight:</strong> There is no magic in training. It is a loop: predict, measure wrongness, run backprop to assign blame, use gradient descent to nudge every weight, repeat. What produces intelligence is running this loop billions of times with enough data and enough parameters.
   </div>
 
-  <h2>Where the analogy breaks down</h2>
+  <h2>Where this picture breaks down</h2>
 
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this picture</div>
     <p><strong>Real networks have billions of weights, not four.</strong> The tables above show four input weights for clarity. In practice a single layer might have millions of connections, and backprop computes gradients for all of them simultaneously.</p>
-    <p><strong>The loss landscape is not smooth.</strong> Real training involves cliffs, plateaus, and <span class="term" data-def="A point where every small weight change makes the loss worse, even if better solutions exist elsewhere. Large modern networks rarely get badly stuck.">local minima</span>. Modern training uses tricks — <span class="term" data-def="A training technique that carries a fraction of the previous weight update into the next step. Helps training move through flat regions and avoid oscillating.">momentum</span>, adaptive learning rates, <span class="term" data-def="A regularisation technique that gradually shrinks all weights during training. Prevents any single weight from dominating and reduces overfitting.">weight decay</span> — to navigate this. Gradient descent in its pure form is rarely used alone.</p>
+    <p><strong>The loss landscape is not smooth.</strong> Real training also involves cliffs, plateaus, and <span class="term" data-def="A point where every small weight change makes the loss worse, even if better solutions exist elsewhere. Large modern networks rarely get badly stuck.">local minima</span>. Modern training uses tricks — <span class="term" data-def="A training technique that carries a fraction of the previous weight update into the next step. Helps training move through flat regions and avoid oscillating.">momentum</span>, adaptive learning rates, <span class="term" data-def="A regularisation technique that gradually shrinks all weights during training. Prevents any single weight from dominating and reduces overfitting.">weight decay</span> — to navigate this. Gradient descent in its pure form is rarely used alone.</p>
     <p><strong>Training doesn't find the global minimum.</strong> Models converge to "good enough" solutions, not optimal ones. For very large models, good enough turns out to be remarkably capable.</p>
-    <p><strong>The numbers here are illustrative.</strong> Actual weight values, error signals, and nudges in real networks are not this legible. They're high-dimensional vectors — meaningful to the maths, not to human inspection.</p>
+    <p><strong>The numbers here are illustrative.</strong> Actual weight values, error signals, and nudges in real networks are not this legible. They are high-dimensional vectors, meaningful to the maths, not to human inspection.</p>
   </div>
 
   <div class="next-article">

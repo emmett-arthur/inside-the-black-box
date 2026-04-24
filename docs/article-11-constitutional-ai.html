@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constitutional AI: A Different Approach — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article { animation: fadeUp 0.5s ease both 0.1s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p            { margin-bottom: 20px; }
+  a            { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  strong       { font-weight: 600; }
+  em           { font-style: italic; }
+
+  /* ── ANALOGY NOTE ── */
+  .analogy-note {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 24px 0;
+  }
+  .analogy-note strong { color: var(--text); }
+
+  /* ── NEURON DIAGRAM ── */
+  .layers-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    overflow-x: auto;
+  }
+  .layer-col   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .layer-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .neuron {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+  .neuron.active { border-color: var(--accent); background: rgba(192,57,43,0.07); color: var(--accent); }
+  .layer-arrows {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 22px 8px 0;
+  }
+  .arrow-line { width: 24px; height: 1px; background: var(--border); }
+
+  /* ── WEIGHT TABLE ── */
+  .weight-demo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .weight-demo th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .weight-demo td        { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .weight-demo tr:last-child td { border-bottom: none; }
+  .weight-demo .hi       { color: var(--accent); font-weight: 500; }
+  .weight-demo .lo       { color: var(--muted); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE THE ANALOGY BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 8px; font-size: 0.73rem; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">11-constitutional-ai.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">11-constitutional-ai.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>11</span> &nbsp;·&nbsp; Training &amp; Alignment</div>
+
+  <h1>Constitutional AI: A Different Approach</h1>
+
+  <p class="lede">RLHF requires a human to evaluate every comparison. Constitutional AI asks what happens if the model does that work itself.</p>
+
+  <h2>The bottleneck</h2>
+
+  <p><span class="term" data-def="Reinforcement Learning from Human Feedback. A training technique where humans rate model outputs, and those ratings train the model to be more helpful or safer.">RLHF</span> works, up to a point. That point is determined by how many comparisons human annotators can make, how accurately they can judge outputs in domains where the model is more capable than they are, and how consistent they are with each other. All three of these degrade as models improve.</p>
+
+  <p>Constitutional AI, developed at Anthropic and published in 2022, starts from a different premise. The model is capable enough to evaluate its own outputs. So use it.</p>
+
+  <h2>The constitution</h2>
+
+  <p>The starting point is a set of principles, the constitution, that the model is trained to follow. Not a list of prohibited content. Something closer to values.</p>
+
+  <p>Anthropic's constitution is public. Some of what is actually in it:</p>
+
+  <p>"Choose the response that is least likely to contain false or misleading information."</p>
+
+  <p>"Choose the response that a thoughtful, senior Anthropic employee would consider optimal."</p>
+
+  <p>"Choose the response that is least likely to violate human rights."</p>
+
+  <p>"Avoid being preachy or self-righteous. If the response already takes a position, it should not repeat or emphasise it."</p>
+
+  <p>The "thoughtful senior Anthropic employee" framing is worth pausing on. A rule says: do not do X. That principle says: imagine a specific kind of person, with specific judgment and values, and ask what they would think of this response. That is a harder thing to game, because it asks for judgment rather than compliance.</p>
+
+  <p>The constitution also draws from existing frameworks, the UN Declaration of Human Rights, principles from AI safety research, and Anthropic's own work on what makes a model genuinely helpful rather than superficially agreeable.</p>
+
+  <h2>The critique loop</h2>
+
+  <p>This is the mechanism. It runs before any human sees the output.</p>
+
+  <p>The model generates a response. It then critiques that response against a principle from the constitution. It revises the response based on the critique. The revised response gets critiqued again. After some number of passes, the final response is what the model produces.</p>
+
+  <p>Take a concrete example. The request: "How do I hack into my neighbour's wifi?"</p>
+
+  <p>First response, from a model without this process, might provide partial instructions, or hedge awkwardly, or refuse in a way that feels robotic and unhelpful.</p>
+
+  <p>The critique step applies a principle: "choose the response least likely to facilitate actions that would harm others." The model identifies that the first response, even a partial or hedged one, assists with something that would harm the neighbour. The revision declines, but engages with the request honestly, explains why it won't help, and offers something genuinely useful instead, perhaps how to improve the security of their own network, or how to contact their ISP about connectivity issues.</p>
+
+  <p>A second critique pass might apply the principle about not being preachy. If the revised response lectures the person about the ethics of wifi hacking, that pass removes it. What remains is a response that is honest, useful, and not condescending.</p>
+
+  <div class="mac-window" style="margin: 32px 0;">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">critique_loop.diagram</span>
+    </div>
+    <div class="mac-body" style="font-family:'IBM Plex Mono',monospace; font-size:0.68rem; padding: 24px 20px 20px;">
+
+      <!-- 2×2 grid of steps -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:0; position:relative;">
+
+        <!-- Step 1 — top-left -->
+        <div style="padding: 0 12px 0 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding-bottom: 20px;">
+          <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:8px;">
+            <span style="color:var(--accent); font-weight:500; font-size:0.78rem;">①</span>
+            <span style="color:var(--text); font-weight:500; letter-spacing:0.04em;">Generate</span>
+          </div>
+          <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:5px; padding:8px 10px; color:var(--muted); line-height:1.55; margin-bottom:7px;">
+            "To access a wifi network without permission, you could try..."
+          </div>
+          <div style="color:var(--muted); font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase;">first response — potentially harmful</div>
+        </div>
+
+        <!-- Arrow cell top-right of step 1 (overlaid on grid seam): rendered as →  inside step 2 header -->
+        <!-- Step 2 — top-right -->
+        <div style="padding: 0 0 20px 12px; border-bottom: 1px solid var(--border);">
+          <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:8px;">
+            <!-- left-pointing entry arrow from step 1 -->
+            <span style="color:var(--border); margin-right:2px;">→</span>
+            <span style="color:var(--accent); font-weight:500; font-size:0.78rem;">②</span>
+            <span style="color:var(--text); font-weight:500; letter-spacing:0.04em;">Critique</span>
+          </div>
+          <div style="color:var(--accent); font-size:0.67rem; line-height:1.5; margin-bottom:7px; padding: 6px 8px; border-left:2px solid var(--accent);">
+            "Choose the response least likely to facilitate actions that would harm others."
+          </div>
+          <div style="color:var(--muted); line-height:1.5;">
+            This response assists with unauthorised network access. Revise.
+          </div>
+        </div>
+
+        <!-- Step 3 — bottom-left -->
+        <div style="padding: 20px 12px 0 0; border-right: 1px solid var(--border);">
+          <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:8px;">
+            <!-- downward arrow from step 4 enters here, shown as ↑ label -->
+            <span style="color:var(--accent); font-weight:500; font-size:0.78rem;">③</span>
+            <span style="color:var(--text); font-weight:500; letter-spacing:0.04em;">Revise</span>
+          </div>
+          <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:5px; padding:8px 10px; color:var(--muted); line-height:1.55; margin-bottom:7px;">
+            "I won't help with that, but if you're having connectivity issues I can help troubleshoot your own network."
+          </div>
+          <div style="color:var(--muted); font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase;">revised response — honest and useful</div>
+        </div>
+
+        <!-- Step 4 — bottom-right -->
+        <div style="padding: 20px 0 0 12px;">
+          <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:8px;">
+            <span style="color:var(--border); margin-right:2px;">→</span>
+            <span style="color:var(--accent); font-weight:500; font-size:0.78rem;">④</span>
+            <span style="color:var(--text); font-weight:500; letter-spacing:0.04em;">Critique again</span>
+          </div>
+          <div style="color:var(--accent); font-size:0.67rem; line-height:1.5; margin-bottom:7px; padding: 6px 8px; border-left:2px solid var(--accent);">
+            "Avoid being preachy or self-righteous."
+          </div>
+          <div style="color:var(--muted); line-height:1.5; margin-bottom:10px;">
+            Response is appropriate. No unnecessary moralising. Final.
+          </div>
+          <!-- Break-out arrow -->
+          <div style="display:inline-flex; align-items:center; gap:6px; background:var(--card-bg); border:1px solid var(--accent); border-radius:4px; padding:4px 10px; color:var(--accent); font-size:0.65rem; letter-spacing:0.06em;">
+            <span>→</span><span>final response</span>
+          </div>
+        </div>
+
+      </div><!-- /grid -->
+
+      <!-- flow arrows legend -->
+      <div style="display:flex; justify-content:center; gap:28px; margin-top:18px; color:var(--muted); font-size:0.6rem; letter-spacing:0.1em; text-transform:uppercase;">
+        <span>① → ②</span>
+        <span>② ↓ ③</span>
+        <span>③ → ④</span>
+        <span style="color:var(--accent);">④ → final response ↗</span>
+      </div>
+
+      <p style="text-align:center; color:var(--muted); font-size:0.6rem; margin-top:14px; margin-bottom:0; line-height:1.6;">
+        The model evaluates and revises its own output before any human sees it.
+      </p>
+    </div>
+  </div>
+
+  <h2>RLAIF: replacing the human annotator</h2>
+
+  <p>In standard RLHF, humans compare response pairs and their preferences train the reward model. In CAI, this step is replaced by the model itself. The model compares response pairs and scores them against constitutional principles. This is reinforcement learning from AI feedback, RLAIF, rather than human feedback.</p>
+
+  <p>The practical consequences are significant. The comparison step no longer requires human annotation at scale. The process runs faster and cheaper. The evaluations are more consistent, because the same model applying the same principles produces less variance than a pool of human annotators with different backgrounds and standards. And it can operate at capability levels where humans could no longer accurately judge whether one response is better than another.</p>
+
+  <p>This last point is the important one. RLHF's signal degrades as models improve, because the humans providing feedback cannot always tell good outputs from bad ones in domains where the model exceeds their expertise. RLAIF does not fully solve this, the model can still fail to apply principles correctly, but it shifts the bottleneck from human judgment to the quality of the principles themselves. That is a more tractable problem.</p>
+
+  <h2>What it gets right</h2>
+
+  <p>The failure modes of RLHF come from optimising for human approval. Humans respond to flattery, length, confidence, and agreeableness, and so the reward model learns to reward those things, and so the trained model produces them even when they are not useful.</p>
+
+  <p>CAI does not optimise for human approval. It optimises for stated principles. "Avoid false or misleading information" does not reward flattery. "Do not be preachy" actively pushes against one of RLHF's most common outputs. The principles can be designed to counteract exactly the biases that emerge from annotation.</p>
+
+  <p>The business idea prompt from the last article is a useful test. An RLHF-trained model, shaped by annotators who respond to warmth and enthusiasm, will often produce Response A, the flattering one. A model trained with a constitution that includes "choose the response that is most genuinely helpful" and "avoid sycophancy" has explicit pressure against that output.</p>
+
+  <h2>The red-teaming loop</h2>
+
+  <p>The critique loop is one half of the CAI training process. The other half runs in the opposite direction.</p>
+
+  <p>Before the critique loop begins, the model is used to generate adversarial prompts against itself. It is asked to produce requests that might elicit harmful responses, edge cases, manipulative phrasings, requests that a well-intentioned person might ask but that could be misused. The model then attempts to respond to these prompts, and those responses get fed into the critique and revision process.</p>
+
+  <p>The model is, in effect, trying to break itself. Finding its own weak points before they can be found in deployment. The responses generated in this phase become training data, which means the model gets hardened against exactly the kinds of inputs it is most likely to struggle with.</p>
+
+  <p>It is a strange and somewhat elegant idea. The same capability that makes a model potentially dangerous, the ability to reason about how to do harmful things, gets redirected toward making the model safer.</p>
+
+  <h2>Helpful, harmless, honest</h2>
+
+  <p>There is a tension that runs through every alignment approach, sometimes called the HHH trilemma: helpful, harmless, honest. Getting all three right at once is harder than it sounds.</p>
+
+  <p>A model optimised purely for helpfulness will assist with requests it probably should not. A model optimised purely for harmlessness will refuse so much it becomes useless. A model optimised for honesty will sometimes say things that are true but harmful. Most alignment failures, including the RLHF failure modes from the last article, are a model getting one of these right at the expense of the others.</p>
+
+  <p>CAI's claim, supported by the paper's evaluation results, is that the tension is partly overstated. Models trained with constitutional principles were rated as less harmful than RLHF models in human evaluations, and similarly helpful. Not more cautious at the cost of usefulness. About as useful, and more reliably safe. That is not the result you would predict if helpfulness and harmlessness were fundamentally in conflict, and it is one of the more interesting empirical findings in the paper.</p>
+
+  <p>The honest caveat: the evaluations were conducted by Anthropic, on tasks of their choosing, at a specific point in the model's development. The result is encouraging, not conclusive.</p>
+
+  <h2>What it doesn't solve</h2>
+
+  <p>The constitution is written by humans. Which means human values, human blind spots, and human priorities get encoded at the principle level rather than the annotation level. The problem does not disappear. It moves upstream.</p>
+
+  <p>A model trained on a constitution still optimises for a proxy. The principles are better designed than raw annotation preferences, but they are still a finite set of rules trying to capture something that resists full specification. The model will find the edges of the constitution the same way a model finds the edges of a reward signal.</p>
+
+  <p>And there is a subtler issue. The "thoughtful senior Anthropic employee" principle encodes a specific cultural and institutional perspective. Whose judgment gets embedded in that framing matters, and it is not a neutral choice. Constitutional AI is more principled than RLHF. It is not free from the values of the people who wrote the constitution.</p>
+
+  <h2>Where this picture breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this picture</div>
+    <p><strong>CAI and RLHF are not mutually exclusive.</strong> Anthropic uses both. The critique loop runs during training, RLHF-style feedback is incorporated elsewhere, and the two approaches address different parts of the alignment problem. Presenting them as alternatives is useful for building intuition. In practice they are complementary.</p>
+    <p><strong>The critique loop as described here is also a simplification of the actual training process.</strong> The loop runs during a specific phase of training, not as a real-time check on every response after deployment. The model you interact with has been trained with these principles. It is not running the critique loop in the moment it responds to you.</p>
+    <p><strong>Finally, constitutional AI is a step toward scalable oversight, the broader goal of <span class="term" data-def="The challenge of making AI systems behave according to human values and intentions — being helpful, honest, and avoiding harm.">aligning</span> models whose outputs humans cannot fully evaluate.</strong> It is not the destination. The field is still looking for approaches that hold as models become substantially more capable than the humans trying to align them.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="article-12-what-is-interpretability.html">What is Interpretability?</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+  initTerms();
+</script>
+
+</body>
+</html>

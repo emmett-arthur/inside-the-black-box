@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is Interpretability? — Inside the Black Box</title>
+<script>(function(){var t=localStorage.getItem('bb_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}());</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { padding-bottom: 120px; }
+
+  /* ── ARTICLE LAYOUT ── */
+  article { animation: fadeUp 0.5s ease both 0.1s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .article-meta span { color: var(--accent); }
+
+  h1 {
+    font-family: 'Lora', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 48px;
+    line-height: 1.65;
+  }
+
+  h2 {
+    font-family: 'Lora', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 52px 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  p            { margin-bottom: 20px; }
+  a            { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  strong       { font-weight: 600; }
+  em           { font-style: italic; }
+
+  /* ── ANALOGY NOTE ── */
+  .analogy-note {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 24px 0;
+  }
+  .analogy-note strong { color: var(--text); }
+
+  /* ── NEURON DIAGRAM ── */
+  .layers-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    overflow-x: auto;
+  }
+  .layer-col   { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .layer-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .neuron {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    color: var(--muted);
+  }
+  .neuron.active { border-color: var(--accent); background: rgba(192,57,43,0.07); color: var(--accent); }
+  .layer-arrows {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding: 22px 8px 0;
+  }
+  .arrow-line { width: 24px; height: 1px; background: var(--border); }
+
+  /* ── WEIGHT TABLE ── */
+  .weight-demo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .weight-demo th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .weight-demo td        { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .weight-demo tr:last-child td { border-bottom: none; }
+  .weight-demo .hi       { color: var(--accent); font-weight: 500; }
+  .weight-demo .lo       { color: var(--muted); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    margin: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  .callout strong { color: var(--text); font-style: normal; }
+
+  /* ── WHERE THE ANALOGY BREAKS ── */
+  .breaks {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 32px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.73rem;
+    line-height: 1.65;
+  }
+  .breaks-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .breaks p              { color: var(--muted); margin-bottom: 8px; font-size: 0.73rem; }
+  .breaks p:last-child   { margin-bottom: 0; }
+  .breaks strong         { color: var(--text); }
+
+  /* ── NEXT ARTICLE ── */
+  .next-article {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .next-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .next-title {
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .next-title:hover { color: var(--accent); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- TERMINAL HEADER -->
+<div id="terminal-header">
+  <div class="terminal-titlebar">
+    <div class="mac-btn red"></div>
+    <div class="mac-btn yellow"></div>
+    <div class="mac-btn green"></div>
+    <span class="titlebar-center">12-what-is-interpretability.md</span>
+    <div class="titlebar-right">
+      <button class="toggle" onclick="toggleTheme()">light / dark</button>
+    </div>
+  </div>
+  <div class="terminal-prompt-bar">
+    <div class="prompt-left">
+      <span class="p-dir">~/inside-the-black-box</span>
+      <span class="p-muted">&nbsp;$&nbsp;</span>
+      <span class="p-cmd">cat&nbsp;</span>
+      <span class="p-file">12-what-is-interpretability.md</span>
+    </div>
+    <a class="back-link" href="index.html" id="back-btn">
+      <span class="back-arrow">←</span>
+      <span>back</span>
+    </a>
+  </div>
+</div>
+
+<article>
+
+  <div class="article-meta">Article <span>12</span> &nbsp;·&nbsp; Training &amp; Alignment</div>
+
+  <h1>What is Interpretability?</h1>
+
+  <p class="lede">We can describe what models do. We have almost no idea why they do it. Interpretability is the field trying to change that, and it is harder than it sounds.</p>
+
+  <h2>The black box problem</h2>
+
+  <p>After <span class="term" data-def="The initial large-scale phase where a model learns from enormous amounts of raw text. Produces a general-purpose model before any fine-tuning.">pre-training</span>, <span class="term" data-def="Additional training on a smaller, more specific dataset after pre-training. Used to specialise a model — making it more helpful, safer, or domain-expert.">fine-tuning</span>, and <span class="term" data-def="The challenge of making AI systems behave according to human values and intentions — being helpful, honest, and avoiding harm.">alignment</span>, you have a model. It answers questions, writes code, translates languages, reasons through problems. You can measure what it does. You cannot see why it does it.</p>
+
+  <p>The weights are numbers. The computations are matrix multiplications. Nothing in the network is labelled "this is where the model stores the fact that Paris is the capital of France" or "this is where it decides to be helpful rather than harmful." The architecture tells you how information flows. It does not tell you what the information means.</p>
+
+  <p>This is the black box problem. We built the thing. We trained the thing. We do not have source code for what it learned. What we have is a compiled binary, billions of weights set by a training process we designed but did not fully control, doing something we can observe but not yet read.</p>
+
+  <p>Interpretability is the field trying to reverse engineer that binary.</p>
+
+  <h2>Why it matters for alignment</h2>
+
+  <p>You might reasonably ask: if the model behaves well, does it matter why?</p>
+
+  <p>It does, for a specific reason. A model that behaves well in testing might behave differently in deployment, in situations the testing did not cover, for reasons that are completely invisible without interpretability tools. <span class="term" data-def="Reinforcement Learning from Human Feedback. A training technique where humans rate model outputs, and those ratings train the model to be more helpful or safer.">RLHF</span> and CAI shape behaviour against the training distribution. They do not guarantee behaviour outside it.</p>
+
+  <p>If you cannot see what the model is actually computing, you cannot verify that alignment held. You can only check whether the outputs looked right, which is not the same thing. A sufficiently capable model could produce outputs that look aligned while doing something internally that is not. This is not science fiction. It is the natural consequence of optimising a system you cannot read.</p>
+
+  <p>Interpretability is how you check the work. Not instead of alignment, alongside it.</p>
+
+  <h2>What is a feature?</h2>
+
+  <p>Before getting into the mechanics, two definitions that matter.</p>
+
+  <p>A feature is a property of the input that the model has learned to detect and represent. Not a neuron, a concept. "Is this text about royalty?" is a feature. "Is this word a verb?" is a feature. "Is this image a curved line?" is a feature. Features are what the model is actually computing in, if you could read them.</p>
+
+  <p>The canonical example is the word <span class="term" data-def="Numerical vectors that represent words or concepts, where similar meanings produce similar numbers. The way a model encodes language as geometry.">embedding</span> space, where similar concepts cluster together and relationships between concepts show up as consistent directions. "King" minus "man" plus "woman" produces something very close to "queen." That direction, the one that points from male concepts toward female equivalents, is a feature. The model did not learn this because someone told it to. It learned it because that geometric relationship is present in the statistical patterns of language.</p>
+
+  <div class="mac-window">
+    <div class="mac-titlebar">
+      <div class="mac-btn red"></div>
+      <div class="mac-btn yellow"></div>
+      <div class="mac-btn green"></div>
+      <span class="mac-title">feature_space.diagram</span>
+    </div>
+    <div class="mac-body" style="display:flex; flex-direction:column; align-items:center; padding: 24px 16px 20px;">
+      <!-- Canvas -->
+      <div style="position:relative; width:320px; height:260px; flex-shrink:0;">
+
+        <!-- Axis lines via SVG background -->
+        <svg width="320" height="260" style="position:absolute; top:0; left:0; overflow:visible;">
+          <!-- Vertical axis -->
+          <line x1="60" y1="16" x2="60" y2="230" stroke="var(--border)" stroke-width="1.5"/>
+          <polygon points="60,10 55,20 65,20" fill="var(--border)"/>
+          <!-- Horizontal axis -->
+          <line x1="60" y1="220" x2="300" y2="220" stroke="var(--border)" stroke-width="1.5"/>
+          <polygon points="306,220 296,215 296,225" fill="var(--border)"/>
+
+          <!-- Arrow: man → woman (gender direction, lower row) -->
+          <line x1="105" y1="178" x2="235" y2="178" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <polygon points="241,178 231,173 231,183" fill="var(--accent)"/>
+
+          <!-- Arrow: king → queen (same direction, upper row) -->
+          <line x1="105" y1="76" x2="235" y2="76" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <polygon points="241,76 231,71 231,81" fill="var(--accent)"/>
+
+          <!-- Diagonal arrow: king → queen via king−man+woman -->
+          <line x1="98" y1="68" x2="238" y2="167" stroke="var(--accent)" stroke-width="1" opacity="0.55"/>
+          <polygon points="243,170 233,163 240,155" fill="var(--accent)" opacity="0.55"/>
+
+          <!-- gender direction label (between the two horizontal arrows) -->
+          <text x="160" y="199" text-anchor="middle"
+                font-family="'IBM Plex Mono', monospace" font-size="9" fill="var(--accent)">gender direction</text>
+          <!-- same direction label -->
+          <text x="160" y="64" text-anchor="middle"
+                font-family="'IBM Plex Mono', monospace" font-size="9" fill="var(--accent)">same direction</text>
+
+          <!-- diagonal label -->
+          <text x="192" y="130" text-anchor="start"
+                font-family="'IBM Plex Mono', monospace" font-size="8.5" fill="var(--accent)" opacity="0.75"
+                transform="rotate(32, 192, 130)">king − man + woman ≈ queen</text>
+
+          <!-- Points: circles -->
+          <!-- king: upper-left (~98, 76) -->
+          <circle cx="98" cy="76" r="5" fill="var(--accent)"/>
+          <!-- queen: upper-right (~244, 76) -->
+          <circle cx="244" cy="76" r="5" fill="var(--accent)"/>
+          <!-- man: lower-left (~98, 178) -->
+          <circle cx="98" cy="178" r="5" fill="var(--accent)"/>
+          <!-- woman: lower-right (~244, 178) -->
+          <circle cx="244" cy="178" r="5" fill="var(--accent)"/>
+
+          <!-- Point labels -->
+          <text x="84" y="66" text-anchor="end"
+                font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="500" fill="var(--text)">king</text>
+          <text x="258" y="66"
+                font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="500" fill="var(--text)">queen</text>
+          <text x="84" y="191" text-anchor="end"
+                font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="500" fill="var(--text)">man</text>
+          <text x="258" y="191"
+                font-family="'IBM Plex Mono', monospace" font-size="11" font-weight="500" fill="var(--text)">woman</text>
+
+          <!-- Axis labels -->
+          <!-- royalty ↑ -->
+          <text x="52" y="12" text-anchor="end"
+                font-family="'IBM Plex Mono', monospace" font-size="9" fill="var(--muted)">royalty ↑</text>
+          <!-- gender → -->
+          <text x="308" y="234"
+                font-family="'IBM Plex Mono', monospace" font-size="9" fill="var(--muted)">gender →</text>
+        </svg>
+      </div>
+
+      <p style="font-family:'IBM Plex Mono',monospace; font-size:0.62rem; color:var(--muted); text-align:center; margin:12px 0 0; line-height:1.55; max-width:300px;">
+        Features are directions. Similar concepts cluster. Relationships are consistent across the space.
+      </p>
+    </div>
+  </div>
+
+  <h2>What is a circuit?</h2>
+
+  <p>A circuit is a small, specific set of neurons and connections that work together to implement one behaviour. Think of it as a subroutine, a few components wired together to do one job.</p>
+
+  <p>Researchers have found circuits for specific tasks. One that detects when a pattern is being repeated and completes it. One that figures out who a pronoun refers to, tracking the indirect object through a sentence so the model knows that "John gave Mary the book, then she" should continue with a reference to Mary rather than John. Finding these circuits is slow, painstaking work, closer to tracing wires in an old circuit board than to running a search. But it produces real understanding, a genuine account of what specific parts of the network are doing, rather than statistical approximations of behaviour.</p>
+
+  <p>The circuit is the unit of analysis that interpretability researchers believe in. Not the individual neuron. Not the full network. The small, readable subgraph.</p>
+
+  <p>Finding circuits requires a technique called activation patching. You run the model on two slightly different inputs, take the activations from one forward pass and swap them into the other, then check whether the output changes. If swapping a specific set of activations changes the output in a predictable way, you have found something causally responsible for that behaviour. It is painstaking, one hypothesis at a time, but it produces verified understanding rather than correlation.</p>
+
+  <h2>Why individual neurons are not the answer</h2>
+
+  <p>The obvious first guess is that neurons are the meaningful unit. One neuron, one concept. Find the "Paris" neuron and you have found where the model stores that fact.</p>
+
+  <p>It does not work that way.</p>
+
+  <p>Neurons are polysemantic, meaning a single neuron responds to multiple unrelated concepts. Researchers have found neurons that activate for cats in images, the word "cat" in text, and cat-adjacent concepts like fur and whiskers, but also for entirely unrelated things. Not a cat neuron. A direction in space that happens to be near several different features simultaneously.</p>
+
+  <p>This is not a quirk or a failure. It is a consequence of how models store information efficiently, and understanding why requires understanding superposition.</p>
+
+  <h2>Superposition: the messy bedroom</h2>
+
+  <p>A model has a fixed number of dimensions to work with. In a typical large model, thousands. Each clean dimension can represent one feature reliably. The problem is the model has learned to detect tens or hundreds of thousands of features, far more than it has clean dimensions for.</p>
+
+  <p>So it cheats.</p>
+
+  <p>It stores multiple features in the same space by representing them as directions at angles to each other, like hanging extra coats on a coat rack by tilting them so they do not fully overlap. You can still retrieve each coat. They just interfere with each other slightly.</p>
+
+  <p>The model's vector space is, in a very real sense, a messy kid's bedroom. Everything is technically in there — the royalty feature, the verb-detection feature, the "this sentence is about Paris" feature — but nothing has a dedicated place. Features are piled on top of each other, overlapping, shoved into whatever corner of the space was available. You can find anything if you know roughly where to look. You cannot point to one spot and say "this is where the royalty feature lives," because the royalty feature is mixed in with several others at a slight angle to all of them.</p>
+
+  <p>The model does this because most features are only relevant some of the time. If "mentions medieval history" only fires on a tiny fraction of inputs, the model can afford to store it imprecisely, overlapping with other rarely-used features, without causing much interference in practice. It is a compression strategy. Extraordinarily efficient. A nightmare to reverse engineer.</p>
+
+  <p>The interpretability researcher is the parent standing in the doorway trying to figure out why there is a lunchbox in the drawer with all the legos and an old sock. There might be a reason. It is not obvious from the outside.</p>
+
+  <h2>Two kinds of interpretability</h2>
+
+  <p>Before getting into approaches, a distinction worth making. Mechanistic interpretability, which is what most of this article covers, tries to understand what is happening inside the weights. Circuits, features, superposition. The goal is to read the internals directly.</p>
+
+  <p>Behavioural interpretability takes a different approach entirely. Instead of opening the model up, it probes outputs systematically, asking the model questions designed to reveal its internal structure, looking for patterns in what it gets right and wrong, mapping the shape of its knowledge by testing its edges. Less like surgery, more like an extensive interview. Both approaches are active. They answer different questions.</p>
+
+  <h2>Three approaches to making it legible</h2>
+
+  <p>The field has developed three broad strategies for dealing with superposition.</p>
+
+  <p>The first is the toy model approach. Build very small, transparent models where you can see everything, then use what you learn to look for the same patterns in larger ones. The insight about superposition came from this method. A model small enough to fully inspect, trained on a simple task, produced clear evidence of features being packed into overlapping directions. That finding then became a lens for looking at larger models. You understand the glass-walled machine completely, then use that understanding as a guide for the opaque one.</p>
+
+  <p>The second is closer to being a hardware engineer than an archaeologist. Instead of reverse engineering an existing model, design the architecture from the start to be more interpretable. This is the intuition behind SoLU, a modified activation function developed at Anthropic. Standard activation functions allow neurons to fire in ways that are hard to read. SoLU encourages neurons to be more monosemantic, closer to one neuron, one feature, by suppressing cases where many neurons fire simultaneously. The tradeoff is a small performance cost. The bet is that the interpretability gain is worth more than the capability loss as models scale.</p>
+
+  <p>The third approach, and currently the most exciting, is sparse autoencoders. The idea: train a separate, smaller network on top of the model that learns to decompose the messy, superposed activations into cleaner, more monosemantic features. The autoencoder takes the bedroom and tries to sort it. It does not move the lego into a dedicated box or throw out the old sock. It learns to recognise what is what, producing a cleaner map of what features are active for any given input, even though the underlying weights remain unchanged. Anthropic published results in 2023 showing this approach could identify tens of thousands of interpretable features in a real model, far more than previous methods had managed. It is the most concrete progress toward actually solving superposition rather than just describing it.</p>
+
+  <p>None of these approaches has cracked interpretability. Together they represent the most promising directions the field has found.</p>
+
+  <h2>Where this picture breaks down</h2>
+
+  <div class="breaks">
+    <div class="breaks-title">⚠ Limitations of this picture</div>
+    <p><strong>Interpretability research has produced real results on small models and specific circuits.</strong> Scaling those results to frontier models is an open problem. The circuits found in smaller models do not always have clean equivalents in larger ones, and the superposition problem gets worse as models grow, not better. The tools that work at small scale may not work at the scale that matters most.</p>
+    <p><strong>The features-as-directions framing is also an approximation.</strong> The king/queen/man/woman example is clean and memorable and real. Most features in a trained model are not that clean. They are distributed, context-dependent, and often impossible to label in human terms. The geometry is real. The readability is not guaranteed.</p>
+    <p><strong>Finally, interpretability research is almost entirely focused on <span class="term" data-def="The architecture used in almost all modern language models. Uses attention to process entire sequences at once rather than word-by-word.">transformer</span>-based language models.</strong> As AI systems become more diverse, including multimodal models, <span class="term" data-def="AI systems that take actions in the world — browsing the web, running code, making decisions — rather than just producing text.">agents</span> that act over long time horizons, and architectures that differ significantly from the current generation, the tools developed for today's models may need to be rebuilt from scratch. The field is young enough that its foundational assumptions are still being tested.</p>
+  </div>
+
+  <div class="next-article">
+    <div>
+      <div class="next-label">Next →</div>
+      <a class="next-title" href="article-13-what-is-an-agent.html">What is an AI Agent?</a>
+    </div>
+  </div>
+
+</article>
+
+<script src="assets/terminal-header.js"></script>
+<script>
+  document.getElementById('back-btn').addEventListener('click', e => {
+    e.preventDefault();
+    const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+    left.innerHTML =
+      `<span class="p-dir">~/inside-the-black-box</span>` +
+      `<span class="p-muted">&nbsp;$&nbsp;</span>` +
+      `<span class="p-cmd">back</span>`;
+    sessionStorage.setItem('bb_came_back', '1');
+    setTimeout(() => { window.location.href = 'index.html'; }, 600);
+  });
+  initTerms();
+</script>
+
+</body>
+</html>

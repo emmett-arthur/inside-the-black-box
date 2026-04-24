@@ -311,19 +311,19 @@
 
   <h2>Why you keep hearing this word</h2>
 
-  <p>At some point you noticed that AI models get described by a number. GPT-3 had 175 billion of them. LLaMA 3 comes in 8 billion and 70 billion flavours. Someone on Twitter will tell you a 7B model running on your laptop is "almost as good" as something with ten times as many. The number in question is always parameters, and it's attached to model names the way megapixels used to be attached to cameras.</p>
+  <p>At some point you noticed that AI models get described by a number. GPT-3 had 175 billion of them. LLaMA 3 comes in 8 billion and 70 billion flavours. Someone on the internet will tell you a 7B model running on your laptop is "almost as good" as something with ten times as many. The number in question is always parameters, and it gets attached to model names the way megapixels used to get attached to cameras.</p>
 
-  <p>For a while in the 2000s, megapixels were the number. Camera manufacturers led with it. Consumers used it to compare. A 12-megapixel camera was assumed to be better than an 8-megapixel one. The logic wasn't entirely wrong — more megapixels does mean something real about resolution — but it obscured everything else that actually determines image quality: sensor size, lens optics, software processing. Megapixels were the easiest number to put on the box.</p>
+  <p>For a while in the 2000s, megapixels were the number. Camera manufacturers led with it. Consumers used it to compare. A 12-megapixel camera was assumed to be better than an 8-megapixel one. The logic was not entirely wrong, more megapixels does mean something real about resolution, but it obscured everything else that actually determines image quality: sensor size, lens optics, software processing. Megapixels were the easiest number to put on the box.</p>
 
-  <p>Parameter count is AI's megapixel moment. It means something real. It became the default shorthand because it's the most convenient single number to describe a model's capacity. And like megapixels, it tells you less than the people quoting it tend to imply.</p>
+  <p>Parameter count is AI's megapixel moment. It means something real. It became the default shorthand because it is the most convenient single number to describe a model's capacity. And like megapixels, it tells you less than the people quoting it tend to imply.</p>
 
   <h2>A parameter is a weight</h2>
 
-  <p>Strip away the marketing and a parameter is just a number inside the network — one of the learnable values that gets adjusted during training. In most contexts, parameters and weights mean the same thing, though technically parameters also include biases, which are small offset values added at each neuron.</p>
+  <p>Strip away the marketing and a parameter is just a number inside the network, one of the learnable values that gets adjusted during training. In most contexts, parameters and weights mean the same thing, though technically parameters also include biases, small offset values added at each neuron.</p>
 
   <p>In our house price model from the previous articles, every connection between neurons has a weight. The connection between "distance to centre" and the first hidden layer has a weight. The connection between that hidden layer and the output has a weight. Each of those is a parameter. Count every connection in the network and you have the parameter count.</p>
 
-  <p>A small network predicting house prices from four inputs might have a few hundred parameters. A <span class="term" data-def="Large Language Model. A neural network with billions of parameters trained on vast text data. GPT-4, Claude, and LLaMA are examples.">large language model</span> has billions — not because the basic unit is different, but because the network is vastly deeper and wider, with far more connections between far more neurons.</p>
+  <p>A small network predicting house prices from four inputs might have a few hundred parameters. A <span class="term" data-def="Large Language Model. A neural network with billions of parameters trained on vast text data. GPT-4, Claude, and LLaMA are examples.">large language model</span> has billions, not because the basic unit is different, but because the network is vastly deeper and wider, with far more connections between far more neurons.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -397,23 +397,25 @@
 
   <h2>What parameters encode</h2>
 
-  <p>Before training, parameters are initialised randomly. They encode nothing — just noise. After training on millions of examples, they're different numbers, and those numbers encode something real.</p>
+  <p>Before training, parameters are initialised randomly. They encode nothing, just noise. After training on millions of examples, they are different numbers, and those numbers encode something real.</p>
 
-  <p>What exactly? The patterns the model found in its training data. In the house model, the weight connecting "distance to centre" to the hidden layer ends up encoding something like: proximity to the centre correlates with higher price, and by roughly this much. That relationship wasn't programmed. It was extracted from data, compressed into a single number, and stored as a weight.</p>
+  <p>The patterns the model found in its training data. In the house model, the weight connecting "distance to centre" to the hidden layer ends up encoding something like: proximity to the centre correlates with higher price, by roughly this much. That relationship was not programmed. It was extracted from data, compressed into a single number, and stored as a weight.</p>
 
-  <p>In a large language model the same logic applies at a scale that becomes genuinely hard to think about. The parameters of GPT-4 encode statistical patterns across an enormous fraction of human written text — the relationship between words, ideas, facts, styles, arguments. Not as a database of facts that can be looked up, but as a vast web of weighted connections that collectively produce plausible continuations of text. Everything the model "knows" lives in those numbers. There is nothing else.</p>
+  <p>In a large language model the same logic applies at a scale that is genuinely hard to hold in mind. The parameters of GPT-4 encode statistical patterns across an enormous fraction of human written text, the relationship between words, ideas, facts, styles, arguments. Not as a database of facts that can be looked up, but as a vast web of weighted connections that collectively produce plausible continuations of text. Everything the model "knows" lives in those numbers. There is nothing else.</p>
 
   <div class="callout">
-    <strong>This is why deleting a model means deleting its weights.</strong> The architecture — the blueprint for how neurons connect — is just a structure. The parameters are the knowledge.
+    <strong>This is why deleting a model means deleting its weights.</strong> The architecture, the blueprint for how neurons connect, is just a structure. The parameters are the knowledge.
   </div>
 
   <h2>Parameters vs hyperparameters</h2>
 
-  <p>There is a second kind of number in machine learning that gets conflated with parameters: hyperparameters. They sound similar and they are both numbers that shape model behaviour, but they are fundamentally different things.</p>
+  <p>There is a second kind of number in machine learning that gets conflated with parameters: hyperparameters. They sound similar and both shape model behaviour, but they are fundamentally different things.</p>
 
-  <p>Parameters are learned. The model finds their values during training by adjusting them to reduce loss. Humans never set them directly. Hyperparameters are chosen. A human decides them before training begins and they stay fixed throughout. The learning rate from the previous article is a hyperparameter — it controls how large each weight update is, but it is not itself updated by the training process.</p>
+  <p>Parameters are learned. The model finds their values during training by adjusting them to reduce loss. Humans never set them directly.</p>
 
-  <p>The distinction matters because when people say "a 70 billion parameter model," they are talking about learned parameters — the knowledge baked in through training — not the structural choices made before training started.</p>
+  <p>Hyperparameters are chosen. A human decides them before training begins and they stay fixed throughout. The learning rate from the previous article is a hyperparameter, it controls how large each weight update is, but it is not itself updated by the training process. Other hyperparameters include the number of layers in the network, the number of neurons per layer, and the batch size.</p>
+
+  <p>When people say "a 70 billion parameter model," they are talking about learned parameters, the knowledge baked in through training, not the structural choices made before training started.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -467,11 +469,11 @@
     </div>
   </div>
 
-  <h2>Why scale matters — and what it cannot tell you</h2>
+  <h2>Why scale matters, and what it cannot tell you</h2>
 
-  <p>More parameters means more capacity. A network with ten million parameters can encode more complex patterns than one with ten thousand. At the scale of large language models, the relationship between parameter count and capability is real — models with more parameters tend to perform better on a wide range of tasks, all else being equal.</p>
+  <p>More parameters means more capacity. A network with ten million parameters can encode more complex patterns than one with ten thousand. At the scale of large language models, the relationship between parameter count and capability is real, models with more parameters tend to perform better on a wide range of tasks, all else being equal.</p>
 
-  <p>But all else is rarely equal. Training data matters as much as parameter count, perhaps more. A 7 billion parameter model trained carefully on high-quality, well-curated data can outperform a 70 billion parameter model trained carelessly on noisy data. Architecture matters too — the specific way neurons are connected and how <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span> is implemented affects what a model can learn, not just how much. And training method matters: two models with identical parameter counts and identical data will behave differently depending on whether and how they were <span class="term" data-def="Additional training on a smaller, more specific dataset after pre-training. Used to specialise a model — making it more helpful, safer, or domain-expert.">fine-tuned</span> or aligned after <span class="term" data-def="The initial large-scale phase where a model learns from enormous amounts of raw text. Produces a general-purpose model before any fine-tuning.">pre-training</span>.</p>
+  <p>All else is rarely equal. Training data matters as much as parameter count, perhaps more. A 7 billion parameter model trained carefully on high-quality, well-curated data can outperform a 70 billion parameter model trained carelessly on noisy data. Architecture matters too, the specific way neurons are connected and how <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span> is implemented affects what a model can learn, not just how much. And training method matters: two models with identical parameter counts and identical data will behave differently depending on whether and how they were <span class="term" data-def="Additional training on a smaller, more specific dataset after pre-training. Used to specialise a model — making it more helpful, safer, or domain-expert.">fine-tuned</span> or aligned after <span class="term" data-def="The initial large-scale phase where a model learns from enormous amounts of raw text. Produces a general-purpose model before any fine-tuning.">pre-training</span>.</p>
 
   <p>Parameter count became the headline number because it is easy to measure and easy to compare. It tells you something real about capacity. It does not tell you about the quality of training, the composition of data, the architecture choices, or how the model behaves on any specific task. A camera with 108 megapixels and a cheap plastic lens will still produce worse photographs than one with 12 megapixels and excellent optics.</p>
 
@@ -479,9 +481,9 @@
 
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this framing</div>
-    <p><strong>No parameter encodes a discrete fact.</strong> The weight-as-knowledge framing is useful but it simplifies in ways worth naming. Knowledge is distributed across millions of weights simultaneously, and the same weight participates in encoding many different patterns at once. You cannot point to a single parameter and say "this one knows that Paris is the capital of France." It does not work that way.</p>
-    <p><strong>Parameter count says nothing about <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context window</span>.</strong> How much text a model can hold in mind at once has a significant effect on what it can do in practice. Two models with the same parameter count can have very different context windows, and for many tasks the context window matters more than total parameter count.</p>
-    <p><strong>The megapixels analogy breaks down in one important direction.</strong> Unlike cameras, where the megapixel race has largely plateaued, the parameter race in AI is still live. The relationship between scale and capability has not yet hit a clear ceiling, and researchers continue to find that larger models develop qualitatively new capabilities that smaller models simply do not have — a phenomenon with no clean equivalent in consumer electronics.</p>
+    <p><strong>No parameter encodes a discrete fact.</strong> Knowledge is distributed across millions of weights simultaneously, and the same weight participates in encoding many different patterns at once. You cannot point to a single parameter and say "this one knows that Paris is the capital of France." It does not work that way.</p>
+    <p><strong>Parameter count says nothing about <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context window</span>.</strong> How much text a model can hold in mind at once has a significant effect on what it can do in practice. Two models with the same parameter count can have very different context window sizes, and for many tasks the context window matters more than the total parameter count.</p>
+    <p><strong>The megapixels analogy breaks down in one important direction.</strong> Unlike cameras, where the megapixel race has largely plateaued, the parameter race in AI is still live. The relationship between scale and capability has not hit a clear ceiling, and researchers continue to find that larger models develop qualitatively new capabilities that smaller models simply do not have, a phenomenon that has no clean equivalent in consumer electronics.</p>
   </div>
 
   <div class="next-article">

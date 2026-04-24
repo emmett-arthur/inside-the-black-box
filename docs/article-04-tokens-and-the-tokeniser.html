@@ -227,7 +227,7 @@
 
   <p>The pieces it gets chopped into are called tokens. Tokens are not words. They are sub-word chunks — fragments that might be a full word, part of a word, a punctuation mark, or even a leading space. "unhappiness" might become three tokens: "un," "happy," "ness." "The" is almost certainly one token. "Tokenisation" might be two. Whether a word stays whole or gets split depends entirely on how common it is in the training data.</p>
 
-  <p>This matters more than it sounds. The model never sees the word "unhappiness." It sees three separate pieces, each processed independently before any meaning gets assembled. Everything the model does — every <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span> computation, every weight update during training — operates on these chunks, not on the words you think you typed.</p>
+  <p>The model never sees the word "unhappiness." It sees three separate pieces, each processed independently before any meaning gets assembled. Everything the model does, every <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span> computation, every weight update during training, operates on these chunks, not on the words you think you typed.</p>
 
   <p>Whitespace is part of this too, in a way that surprises most people. The token for " the" with a leading space is a different token to "the" without one. "Hello" and " Hello" are not the same token. The model does not see clean words separated by neutral spaces. It sees a stream of chunks where spaces are baked into the chunks themselves, and two versions of the same word can have completely different representations depending on where in a sentence they appear.</p>
 
@@ -246,7 +246,7 @@
 <span class="tok-str">" mat"</span>  <span class="tok-arr">→</span>  <span class="tok-num">2603</span></pre>
   </div>
 
-  <p>That list of integers — [464, 3797, 3332, 319, 262, 2603] — is what the model actually receives. There is no text after this point. No letters, no words, no punctuation as you would recognise it. Just a sequence of numbers, each one pointing to an entry in a lookup table.</p>
+  <p>That list of integers, [464, 3797, 3332, 319, 262, 2603], is what the model actually receives. There is no text after this point. No letters, no words, no punctuation as you would recognise it. Just a sequence of numbers, each one pointing to an entry in a lookup table.</p>
 
   <!-- DIAGRAM 1 -->
   <div class="mac-window">
@@ -298,7 +298,7 @@
 
   <p>The embedding table is the full collection of those vectors — one row per token in the vocabulary, each row a list of numbers. Look up integer 464, get the vector for "The." Look up 3797, get the vector for " cat." The table has one row for every token the model knows — 100,277 rows in GPT-4's case — and each row gets refined during training until the numbers reflect the actual relationships between words.</p>
 
-  <p>This lookup is the last step before the real computation begins. Integers in, vectors out. Everything after this — <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span>, feed-forward layers, all of it — operates on these vectors.</p>
+  <p>Integers in, vectors out. Everything after this, <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span>, feed-forward layers, all of it, operates on these vectors.</p>
 
   <!-- DIAGRAM 2 -->
   <div class="mac-window">
@@ -374,41 +374,39 @@
 
   <h2>Why sub-word and not just words?</h2>
 
-  <p>The sub-word approach is a pragmatic solution to two problems that sit at opposite ends of the same spectrum.</p>
+  <p>Two problems, opposite ends of the same spectrum.</p>
 
-  <p>A word-level tokeniser — one token per word — sounds intuitive. The problem is vocabulary size. English alone has hundreds of thousands of words, plus technical terms, proper nouns, misspellings, and words from other languages that appear in English text. A vocabulary large enough to cover all of this would require a lookup table too large to train efficiently, and any word not in the vocabulary simply cannot be represented.</p>
+  <p>A word-level tokeniser, one token per word, sounds intuitive. The problem is vocabulary size. English alone has hundreds of thousands of words, plus technical terms, proper nouns, misspellings, and words from other languages that appear in English text. A vocabulary large enough to cover all of this would require a lookup table too large to train efficiently, and any word not in the vocabulary simply cannot be represented.</p>
 
-  <p>A character-level tokeniser — one token per letter — solves the vocabulary problem entirely. You only need 26 letters plus punctuation. But it creates a different problem: sequences become very long. "The cat sat" is eleven characters. Processing eleven tokens instead of three is slower, and the model has to learn that "c," "a," and "t" together mean something — a harder task than learning it from a single token.</p>
+  <p>A character-level tokeniser, one token per letter, solves the vocabulary problem entirely. You only need 26 letters plus punctuation. But sequences become very long. "The cat sat" is eleven characters. Processing eleven tokens instead of three is slower, and the model has to learn that "c," "a," and "t" together mean something, a harder task than learning it from a single token.</p>
 
-  <p>Sub-word tokenisation is the middle ground. Common words — "the," "cat," "sat" — stay as single tokens because they appear often enough to earn a place in the vocabulary. Rare words get broken into recognisable pieces. "Tokenisation" might become "token" and "isation." A technical term might become several fragments. The model handles both common and rare language without an unmanageable vocabulary or impractically long sequences.</p>
+  <p>Sub-word tokenisation is the middle ground. Common words stay as single tokens because they appear often enough to earn a place in the vocabulary. Rare words get broken into recognisable pieces. "Tokenisation" might become "token" and "isation." The model handles both common and rare language without an unmanageable vocabulary or impractically long sequences.</p>
 
   <h2>How BPE builds the vocabulary</h2>
 
-  <p>The most widely used sub-word method is called Byte Pair Encoding, or BPE. The name is slightly misleading — the process is simpler than it sounds.</p>
+  <p>The most widely used sub-word method is called Byte Pair Encoding, or BPE. The process is simpler than the name implies.</p>
 
-  <p>Start with the entire training corpus — billions of words of text — broken down into individual characters. Every character is a token. Now find the most frequently occurring pair of adjacent tokens and merge them into a single new token. "t" and "h" appearing together constantly becomes "th." Do this again — "th" and "e" becomes "the." Repeat the process, each time merging the most common pair, until you have reached your target vocabulary size.</p>
+  <p>Start with the entire training corpus broken down into individual characters. Every character is a token. Find the most frequently occurring pair of adjacent tokens and merge them into a single new token. "t" and "h" appearing together constantly becomes "th." Do this again, "th" and "e" becomes "the." Repeat, each time merging the most common pair, until you reach your target vocabulary size.</p>
 
-  <p>The result is a vocabulary that reflects the actual distribution of the training data. Common words and common word fragments become single tokens. Rare combinations stay as multiple fragments. The vocabulary is not hand-crafted — it is a direct product of what the model was trained on, which means it encodes the biases and priorities of that data before a single weight has been learned.</p>
+  <p>The result reflects the actual distribution of the training data. Common words and common word fragments become single tokens. Rare combinations stay as multiple fragments. The vocabulary is not hand-crafted. It is a direct product of what the model was trained on, which means it encodes the biases and priorities of that data before a single weight has been learned.</p>
 
   <h2>Vocabulary size and what it means for performance</h2>
 
   <p>GPT-4 uses a vocabulary of 100,277 tokens. That number is a design decision with real tradeoffs.</p>
 
-  <p>A larger vocabulary means more common words and phrases stay as single tokens — fewer pieces, shorter sequences, faster computation. But every token in the vocabulary needs its own row in the embedding table, and every row needs to be learned during training. A vocabulary of 100,000 tokens requires 100,000 embedding vectors, each with hundreds of dimensions. That is a significant portion of the model's total parameters.</p>
+  <p>A larger vocabulary means more common words and phrases stay as single tokens, fewer pieces, shorter sequences, faster computation. But every token needs its own row in the embedding table, and every row needs to be learned during training. A vocabulary of 100,000 tokens requires 100,000 embedding vectors, each with hundreds of dimensions. That is a significant portion of the model's total parameters.</p>
 
-  <p>A smaller vocabulary means shorter, more efficient training, but longer sequences at <span class="term" data-def="Running a trained model to produce outputs. Weights are frozen — no learning happens during inference.">inference</span> time — which is expensive for <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span>, which scales quadratically with sequence length.</p>
+  <p>A smaller vocabulary means shorter, more efficient training, but longer sequences at <span class="term" data-def="Running a trained model to produce outputs. Weights are frozen — no learning happens during inference.">inference</span> time, which is expensive for <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span>, which scales quadratically with sequence length, meaning double the tokens and you roughly quadruple the computation.</p>
 
   <p>The number is a balance. Different models have made different choices, and those choices have downstream effects on which languages and domains the model handles well.</p>
 
   <h2>How tokenisation decisions show up in what models can and cannot do</h2>
 
-  <p>This is where tokenisation stops being an implementation detail and starts explaining behaviour you have probably noticed.</p>
+  <p>Counting letters in a word is surprisingly hard for language models. Ask GPT how many r's are in "strawberry" and it will often get it wrong. The model never sees individual letters. It sees token chunks. It cannot count characters it has never been shown. Not a reasoning failure. A direct consequence of how the input was represented before any reasoning began.</p>
 
-  <p>Counting letters in a word is surprisingly hard for language models. Ask GPT how many r's are in "strawberry" and it will often get it wrong. The reason is that the model never sees individual letters — it sees token chunks. It cannot count characters it has never been shown. This is not a reasoning failure. It is a direct consequence of how the input was represented before any reasoning began.</p>
+  <p>Arithmetic can behave inconsistently for similar reasons. Numbers get tokenised in ways that do not reflect their mathematical relationships. The number 1234 might be one token or four, depending on context. Simple arithmetic that seems trivial can become genuinely hard when the numbers involved get tokenised in unexpected ways.</p>
 
-  <p>Arithmetic can behave inconsistently for similar reasons. Numbers get tokenised in ways that do not reflect their mathematical relationships. The number 1234 might be one token or four, depending on context. The model has no guarantee that adjacent number tokens represent adjacent values. Simple arithmetic that seems trivial can become genuinely hard when the numbers involved get tokenised in unexpected ways.</p>
-
-  <p>Some languages are at a structural disadvantage. A word in English might be one token. The equivalent concept expressed in another language — particularly languages with rich morphology, or languages underrepresented in the training data — might be four or five tokens. This means those languages consume more of the <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context window</span> for the same amount of meaning, and the model has seen far fewer training examples per token for those languages. The tokeniser encodes the priorities of its training data, and English-heavy training data produces an English-efficient tokeniser.</p>
+  <p>Some languages are at a structural disadvantage. A word in English might be one token. The equivalent concept expressed in another language, particularly languages with rich morphology, or languages underrepresented in the training data, might be four or five tokens. Those languages consume more of the <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context window</span> for the same amount of meaning, and the model has seen far fewer training examples per token for them. The tokeniser encodes the priorities of its training data, and English-heavy training data produces an English-efficient tokeniser.</p>
 
   <p>Code behaves differently to prose for the same reason. Common programming keywords — "def," "return," "import" — tend to get their own tokens. Unusual variable names get fragmented. The model's fluency with different programming languages reflects, in part, how well those languages are represented in the tokeniser's vocabulary.</p>
 
@@ -418,9 +416,9 @@
 
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this picture</div>
-    <p><strong>The "chunks of text map to integers" framing is accurate but it skips over some complexity at the byte level.</strong> Modern tokenisers like GPT-4's tiktoken operate on bytes rather than characters, which means they can handle any Unicode input — including emoji, non-Latin scripts, and arbitrary binary data — without a special case for every possible character. The principle is the same; the implementation is slightly lower-level.</p>
-    <p><strong>The embedding table analogy also simplifies in one important direction.</strong> Embeddings are not static after training — in the <span class="term" data-def="The architecture used in almost all modern language models. Uses attention to process entire sequences at once rather than word-by-word.">transformer</span>, the initial embedding is just the starting point. By the time a token's representation has passed through multiple <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span> layers, it has been reshaped by its context to the point where the original embedding is just a seed. The RGB analogy captures what embeddings are at lookup time. It does not capture what they become by the time the model produces an output.</p>
-    <p><strong>Finally, tokenisation is not the only way to represent text as numbers for a neural network.</strong> Character-level and byte-level models exist and have real advantages for certain tasks. Sub-word tokenisation with BPE is the dominant approach today because it works well at scale — not because it is theoretically optimal.</p>
+    <p><strong>The "chunks of text map to integers" framing skips over some complexity at the byte level.</strong> Modern tokenisers like GPT-4's tiktoken operate on bytes rather than characters, which means they can handle any Unicode input, including emoji, non-Latin scripts, and arbitrary binary data, without a special case for every possible character. The principle is the same. The implementation is slightly lower-level.</p>
+    <p><strong>Embeddings are not static after training.</strong> In the <span class="term" data-def="The architecture used in almost all modern language models. Uses attention to process entire sequences at once rather than word-by-word.">transformer</span>, the initial embedding is just the starting point. By the time a token's representation has passed through multiple <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span> layers, it has been reshaped by its context to the point where the original embedding is just a seed. The RGB analogy captures what embeddings are at lookup time. It does not capture what they become by the time the model produces an output.</p>
+    <p><strong>Finally, tokenisation is not the only way to represent text as numbers for a neural network.</strong> Character-level and byte-level models exist and have real advantages for certain tasks. Sub-word tokenisation with BPE is the dominant approach today because it works well at scale, not because it is theoretically optimal.</p>
   </div>
 
   <div class="next-article">

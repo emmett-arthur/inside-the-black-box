@@ -229,23 +229,25 @@
 
   <h1>What is a Neural Network?</h1>
 
-  <p class="lede">The phrase gets thrown around constantly. Here's what's actually happening inside — told through the one analogy that gets closest to the truth, and where that analogy falls apart.</p>
+  <p class="lede">The phrase gets thrown around constantly. Here is what is actually happening inside, and where the most common analogy falls apart.</p>
 
-  <p>Before you can understand <span class="term" data-def="The architecture used in almost all modern language models. Uses attention to process entire sequences at once rather than word-by-word.">transformers</span>, <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span>, <span class="term" data-def="Reinforcement Learning from Human Feedback. A training technique where humans rate model outputs, and those ratings train the model to be more helpful or safer.">RLHF</span>, or any of the machinery that makes modern AI work, you need one thing: an honest picture of what a neural network actually is. Not what it feels like to use one — what it literally does.</p>
+  <h2>Not magic, just maths</h2>
 
-  <p>The short answer: <strong>a neural network is a function that maps inputs to outputs by passing numbers through layers of simple mathematical operations, where the behaviour of those operations is shaped by billions of learned parameters called weights.</strong></p>
+  <p>Before you can understand <span class="term" data-def="The architecture used in almost all modern language models. Uses attention to process entire sequences at once rather than word-by-word.">transformers</span>, <span class="term" data-def="A mechanism that lets a model weigh how relevant each part of its input is to every other part, so it focuses on the right context when generating output.">attention</span>, or any of the machinery that makes modern AI work, you need one thing: an honest picture of what a neural network actually is. Not what it feels like to use one. What it literally does.</p>
 
-  <p>That sentence is precise but not yet useful. Let's build up to it.</p>
+  <p>A neural network is a function that maps inputs to outputs by passing numbers through layers of simple mathematical operations, where the behaviour of those operations is shaped by billions of learned parameters called weights.</p>
+
+  <p>That sentence is precise but not yet useful. Here is how to build up to it.</p>
 
   <h2>The analogy: a panel of judges</h2>
 
-  <p>Imagine you're trying to decide whether a photo contains a cat. You assemble a panel of judges — say, five of them. Each judge looks at the photo and gives a score between 0 and 1, representing their confidence. But here's the twist: each judge only pays attention to a small patch of the image, and each has a different sensitivity. One notices whiskers. One notices pointed ears. One notices the general shape of a sitting animal.</p>
+  <p>Imagine you are trying to decide whether a photo contains a cat. You assemble a panel of judges, say five of them. Each judge looks at the photo and gives a score between 0 and 1 representing their confidence. Each judge pays attention to a different thing. One notices whiskers. One notices pointed ears. One notices the general shape of a sitting animal.</p>
 
-  <p>You then combine their scores — weighting some judges more heavily than others based on how reliable they've proven to be — and produce a final verdict.</p>
+  <p>You then combine their scores, weighting some judges more heavily than others based on how reliable they have proven to be, and produce a final verdict.</p>
 
-  <p>Now imagine instead of five judges, you have millions. And instead of one panel, you have dozens of panels stacked on top of each other — the first panel looks at raw pixels, the second looks at the outputs of the first (edges, shapes), the third looks at the outputs of the second (textures, parts), and so on. By the time you reach the final layer, the network has built a rich, abstract representation of the image from the ground up.</p>
+  <p>Now imagine instead of five judges, you have millions. And instead of one panel, you have dozens of panels stacked on top of each other. The first panel looks at raw pixels, the second looks at the outputs of the first (edges, shapes), the third looks at the outputs of the second (textures, parts), and so on. By the time you reach the final layer, the network has built a rich, abstract representation of the image from the ground up.</p>
 
-  <p>That's a neural network. The "judges" are neurons. Their individual sensitivities are weights. The stacked panels are layers.</p>
+  <p>That is a neural network. The "judges" are neurons. Their individual sensitivities are weights. The stacked panels are layers.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -312,9 +314,9 @@
 
   <h2>What a weight actually is</h2>
 
-  <p>Every connection between neurons has a weight — a single number that determines how much one neuron's output influences the next neuron's input. A high positive weight means "if this fires, strongly push the next one to fire too." A negative weight means "if this fires, suppress the next one." A weight near zero means "this connection barely matters."</p>
+  <p>Every connection between neurons has a weight, a single number that determines how much one neuron's output influences the next neuron's input. A high positive weight means: if this fires, strongly push the next one to fire too. A negative weight means: if this fires, suppress the next one. A weight near zero means: this connection barely matters.</p>
 
-  <p>A large modern neural network might have tens of billions of these weights. The entire character of the network — what it knows, what it's good at, how it behaves — lives in those numbers.</p>
+  <p>A large modern neural network might have tens of billions of these weights. The entire character of the network, what it knows, what it is good at, how it behaves, lives in those numbers.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -342,13 +344,13 @@
     </div>
   </div>
 
-  <p>These weights aren't hand-coded. Nobody sat down and decided that whiskers should score +2.8. <strong>The network learned those values</strong> by being shown millions of labelled examples and gradually adjusting every weight to reduce its mistakes. That process is called <span class="term" data-def="The process of adjusting a model's weights by repeatedly predicting, measuring error, and nudging weights to reduce mistakes.">training</span> — and it's the subject of the next article.</p>
+  <p>These weights are not hand-coded. Nobody sat down and decided that whiskers should score +2.8. The network learned those values by being shown millions of labelled examples and gradually adjusting every weight to reduce its mistakes. That process is called <span class="term" data-def="The process of adjusting a model's weights by repeatedly predicting, measuring error, and nudging weights to reduce mistakes.">training</span>, and it is the subject of the next article.</p>
 
   <h2>The activation function: giving neurons opinions</h2>
 
-  <p>There's one more piece. Each neuron doesn't just pass its input straight through — it applies a small function called an <strong>activation function</strong> that introduces non-linearity. The most common one used today is called ReLU: if the input is negative, output zero. If it's positive, pass it through unchanged.</p>
+  <p>Each neuron does not just pass its input straight through. It applies a small function called an <strong>activation function</strong> that introduces non-linearity. The most common one today is called ReLU: if the input is negative, output zero. If it is positive, pass it through unchanged.</p>
 
-  <p>Why does this matter? Without non-linearity, stacking dozens of layers would be mathematically equivalent to having just one layer. Non-linear activations are what let deep networks learn curves, corners, and complexity.</p>
+  <p>Without non-linearity, stacking dozens of layers would be mathematically equivalent to having just one layer. Non-linear activations are what let deep networks learn curves, corners, and complexity.</p>
 
   <div class="callout">
     <strong>The key insight:</strong> A neural network isn't magic. It's a very large composition of very simple operations — multiply by a weight, add a <span class="term" data-def="A small offset value added at each neuron, separate from its connection weights. Lets the neuron shift its activation threshold independently of its inputs.">bias</span>, apply a threshold — repeated millions of times. Intelligence emerges from scale and the right training signal, not from any single clever component.
@@ -358,16 +360,16 @@
 
   <div class="breaks">
     <div class="breaks-title">⚠ Analogy limitations</div>
-    <p><strong>Neurons don't "pay attention" to specific things by design.</strong> Real neurons in a trained network activate in response to patterns that often don't have clean human-interpretable labels like "whiskers." The features a network learns are frequently distributed, abstract, and hard to describe.</p>
-    <p><strong>Neurons don't work independently.</strong> The analogy implies discrete, separable opinions. In reality, meaning is distributed across many neurons simultaneously — no single neuron reliably represents a single concept.</p>
-    <p><strong>Biological neurons are nothing like this.</strong> The name "neural network" is a loose analogy to the brain. These are not simulations of the brain — they're mathematical functions inspired, very loosely, by its architecture.</p>
+    <p><strong>Neurons do not "pay attention" to specific things by design.</strong> Real neurons in a trained network activate in response to patterns that often have no clean human-interpretable label like "whiskers." The features a network learns are frequently distributed, abstract, and hard to describe.</p>
+    <p><strong>Neurons do not work independently either.</strong> The analogy implies discrete, separable opinions. In reality, meaning is distributed across many neurons simultaneously. No single neuron reliably represents a single concept.</p>
+    <p><strong>Biological neurons are nothing like this.</strong> The name "neural network" is a loose analogy to the brain. These are not simulations of the brain. They are mathematical functions inspired, very loosely, by its architecture.</p>
   </div>
 
   <h2>What this means in practice</h2>
 
-  <p>When you interact with GPT-4, Claude, or any modern language model, you're talking to a neural network with hundreds of billions of weights arranged in a specific architecture called a <em>transformer</em>. All of its knowledge — about history, code, language, reasoning — lives in those numbers. There's no database being queried. No rules being followed. Just a very large, very well-trained function mapping your input to a probable output.</p>
+  <p>When you interact with GPT-4, Claude, or any modern language model, you are talking to a neural network with hundreds of billions of weights arranged in a specific architecture called a <em>transformer</em>. All of its knowledge, about history, code, language, reasoning, lives in those numbers. There is no database being queried. No rules being followed. Just a very large, very well-trained function mapping your input to a probable output.</p>
 
-  <p>That's the foundation. Everything else — attention, training, <span class="term" data-def="The challenge of making AI systems behave according to human values and intentions — being helpful, honest, and avoiding harm.">alignment</span>, <span class="term" data-def="AI systems that take actions in the world — browsing the web, running code, making decisions — rather than just producing text.">agents</span> — is built on top of this.</p>
+  <p>That is the foundation. Everything else is built on top of this.</p>
 
   <div class="next-article">
     <div>
