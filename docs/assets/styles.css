@@ -204,6 +204,57 @@ body {
      margin: 0 48px minimum so edge-anchored elements don't bleed outside. */
 }
 
+/* ── READ TIME (appended in terminal prompt bar) ── */
+.p-read-time {
+  color: var(--terminal-muted);
+  margin-left: 20px;
+}
+
+/* ── TABLE OF CONTENTS SIDEBAR ──────────────────────────────
+   Fixed left of the centered article column. Right edge sits
+   ~20px left of the article's left edge at any viewport width.
+   Hidden below 1000px — mobile gets single-column only.
+   ─────────────────────────────────────────────────────────── */
+.toc-sidebar {
+  position: fixed;
+  /* 50% - half article width (340px) - sidebar width (150px) - gap (20px) */
+  left: max(8px, calc(50% - 510px));
+  top: 116px;   /* clears the 91px header + breathing room */
+  width: 150px;
+  z-index: 50;
+}
+@media (max-width: 999px) {
+  .toc-sidebar { display: none; }
+}
+.toc-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-left: 10px;
+}
+.toc-sidebar ul {
+  list-style: none;
+}
+.toc-link {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-decoration: none;
+  display: block;
+  padding: 3px 0 3px 10px;
+  line-height: 1.45;
+  border-left: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.toc-link:hover { color: var(--text); }
+.toc-link.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
 /* ── SHARED ARTICLE BASE ── */
 article {
   max-width: 680px;

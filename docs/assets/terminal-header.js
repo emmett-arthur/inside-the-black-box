@@ -1,6 +1,7 @@
 // Inside the Black Box — shared terminal header logic
 // Included by every page. Page-specific scripts (boot sequence,
 // hover interactions, back-btn) live inline in each HTML file.
+// initReadTime() and initTOC() auto-run at script load (bottom of <body>).
 
 function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
@@ -46,3 +47,105 @@ function initTerms() {
   // Click anywhere else to dismiss
   document.addEventListener('click', () => { if (activeEl) clearDef(); });
 }
+
+// ── READ TIME ────────────────────────────────────────────────
+// Counts words in <article>, calculates minutes at 800 wpm,
+// and appends "~N min read" after the .p-file span.
+// Must run before initTerms() so idleHTML captures the read time.
+function initReadTime() {
+  const article = document.querySelector('article');
+  const pFile   = document.querySelector('.terminal-prompt-bar .p-file');
+  if (!article || !pFile) return;
+
+  const words = article.innerText.trim().split(/\s+/).filter(Boolean).length;
+  const mins  = Math.max(1, Math.round(words / 800));
+
+  const span = document.createElement('span');
+  span.className   = 'p-read-time';
+  span.textContent = '~' + mins + ' min read';
+  pFile.insertAdjacentElement('afterend', span);
+}
+
+// ── TABLE OF CONTENTS SIDEBAR ────────────────────────────────
+// Builds a fixed left sidebar from <article> h2 elements.
+// Only shown when the article has 3+ h2 headings.
+// Assigns slug IDs to headings that lack one.
+function initTOC() {
+  const article  = document.querySelector('article');
+  if (!article) return;
+  const headings = Array.from(article.querySelectorAll('h2'));
+  if (headings.length < 3) return;
+
+  // Slugify heading text (strips punctuation, collapses whitespace)
+  function slugify(text) {
+    return text.toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  // Assign unique IDs where missing
+  const usedIds = new Set(
+    Array.from(document.querySelectorAll('[id]')).map(el => el.id)
+  );
+  headings.forEach(h => {
+    if (!h.id) {
+      let base = slugify(h.textContent.trim());
+      let id   = base;
+      let n    = 1;
+      while (usedIds.has(id)) { id = base + '-' + (++n); }
+      h.id = id;
+      usedIds.add(id);
+    }
+  });
+
+  // Build sidebar DOM
+  const nav = document.createElement('nav');
+  nav.className = 'toc-sidebar';
+  nav.id        = 'toc-sidebar';
+  nav.setAttribute('aria-label', 'Table of contents');
+
+  const label = document.createElement('div');
+  label.className   = 'toc-label';
+  label.textContent = 'Contents';
+  nav.appendChild(label);
+
+  const ul = document.createElement('ul');
+  headings.forEach(h => {
+    const li = document.createElement('li');
+    const a  = document.createElement('a');
+    a.href      = '#' + h.id;
+    a.className = 'toc-link';
+    a.textContent = h.textContent.trim();
+    li.appendChild(a);
+    ul.appendChild(li);
+  });
+  nav.appendChild(ul);
+  document.body.appendChild(nav);
+
+  // Highlight active section via IntersectionObserver
+  const links = Array.from(nav.querySelectorAll('.toc-link'));
+  let activeLink = null;
+
+  function setActive(link) {
+    if (activeLink) activeLink.classList.remove('active');
+    activeLink = link;
+    if (activeLink) activeLink.classList.add('active');
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const idx = headings.indexOf(entry.target);
+      if (idx !== -1) setActive(links[idx]);
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+}
+
+// Auto-initialise on every page that includes this script.
+// initReadTime must run before initTerms() (called by each article's
+// inline script) so the idleHTML snapshot already includes read time.
+initReadTime();
+initTOC();
