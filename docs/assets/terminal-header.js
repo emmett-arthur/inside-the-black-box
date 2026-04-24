@@ -49,7 +49,7 @@ function initTerms() {
 }
 
 // ── READ TIME ────────────────────────────────────────────────
-// Counts words in <article>, calculates minutes at 800 wpm,
+// Counts words in <article>, calculates minutes at 250 wpm,
 // and appends "~N min read" after the .p-file span.
 // Must run before initTerms() so idleHTML captures the read time.
 function initReadTime() {
@@ -58,7 +58,7 @@ function initReadTime() {
   if (!article || !pFile) return;
 
   const words = article.innerText.trim().split(/\s+/).filter(Boolean).length;
-  const mins  = Math.max(1, Math.round(words / 800));
+  const mins  = Math.max(1, Math.round(words / 250));
 
   const span = document.createElement('span');
   span.className   = 'p-read-time';
