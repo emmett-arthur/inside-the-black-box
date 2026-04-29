@@ -1,7 +1,13 @@
 // Inside the Black Box — shared terminal header logic
 // Included by every page. Page-specific scripts (boot sequence,
 // hover interactions, back-btn) live inline in each HTML file.
-// initReadTime() and initTOC() auto-run at script load (bottom of <body>).
+// initReadTime(), initTOC(), and initAudioPlayer() auto-run at script load.
+
+// ── SHARED PROMPT STATE ──────────────────────────────────────
+// Coordinates between initTerms() and initAudioPlayer() so that
+// dismissing a glossary term while audio plays restores "▸ playing"
+// rather than silently reverting to idle.
+const _promptState = { idle: null, playing: null };
 
 function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
@@ -16,8 +22,8 @@ function initTerms() {
   const left  = document.querySelector('.terminal-prompt-bar .prompt-left');
   let activeEl = null;
 
-  // Save the original idle HTML so we can restore it
-  const idleHTML = left.innerHTML;
+  // Fallback snapshot in case _promptState.idle isn't set yet
+  const idleHTML = left ? left.innerHTML : '';
 
   function showDef(el) {
     if (activeEl) activeEl.classList.remove('active');
@@ -33,7 +39,8 @@ function initTerms() {
   function clearDef() {
     if (activeEl) activeEl.classList.remove('active');
     activeEl = null;
-    left.innerHTML = idleHTML;
+    // Restore playing state if audio is active, otherwise idle
+    left.innerHTML = _promptState.playing ?? _promptState.idle ?? idleHTML;
   }
 
   terms.forEach(el => {
@@ -64,6 +71,10 @@ function initReadTime() {
   span.className   = 'p-read-time';
   span.textContent = '~' + mins + ' min read';
   pFile.insertAdjacentElement('afterend', span);
+
+  // Save idle snapshot after read time is appended
+  const left = document.querySelector('.terminal-prompt-bar .prompt-left');
+  if (left) _promptState.idle = left.innerHTML;
 }
 
 // ── TABLE OF CONTENTS SIDEBAR ────────────────────────────────
@@ -144,8 +155,118 @@ function initTOC() {
   headings.forEach(h => observer.observe(h));
 }
 
+// ── AUDIO PLAYER ─────────────────────────────────────────────
+// Renders a slim player between the lede and first h2.
+// Does nothing if no .lede exists (index page) or if the audio
+// file returns a non-200 response (404 guard).
+function initAudioPlayer() {
+  const lede = document.querySelector('article .lede');
+  if (!lede) return;
+
+  const titleText = document.querySelector('.titlebar-center')?.textContent?.trim() || '';
+  const slug = titleText.replace(/\.md$/, '');
+  if (!slug || slug === 'black_box.sh') return;
+
+  const audioUrl = `/audio/${slug}.mp3`;
+
+  fetch(audioUrl, { method: 'HEAD' })
+    .then(res => { if (res.ok) _buildPlayer(slug, audioUrl, lede); })
+    .catch(() => {});
+}
+
+function _buildPlayer(slug, audioUrl, lede) {
+  const audio = new Audio(audioUrl);
+  audio.preload = 'metadata';
+
+  // ── DOM ──
+  const player = document.createElement('div');
+  player.className = 'audio-player';
+  player.innerHTML =
+    `<button class="audio-play-btn" aria-label="Play">▶</button>` +
+    `<div class="audio-scrubber-wrap">` +
+      `<input class="audio-scrubber" type="range" min="0" value="0" step="0.01">` +
+    `</div>` +
+    `<span class="audio-time">` +
+      `<span class="audio-current">0:00</span>` +
+      `<span class="audio-sep"> / </span>` +
+      `<span class="audio-duration">--:--</span>` +
+    `</span>`;
+  lede.insertAdjacentElement('afterend', player);
+
+  const btn      = player.querySelector('.audio-play-btn');
+  const scrubber = player.querySelector('.audio-scrubber');
+  const current  = player.querySelector('.audio-current');
+  const duration = player.querySelector('.audio-duration');
+  const left     = document.querySelector('.terminal-prompt-bar .prompt-left');
+
+  function fmt(s) {
+    const m   = Math.floor(s / 60);
+    const sec = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  }
+
+  function setProgress(pct) {
+    scrubber.style.setProperty('--pct', pct + '%');
+  }
+
+  // ── METADATA ──
+  audio.addEventListener('loadedmetadata', () => {
+    scrubber.max = audio.duration;
+    duration.textContent = fmt(audio.duration);
+  });
+
+  // ── PLAY / PAUSE ──
+  btn.addEventListener('click', () => {
+    if (audio.paused) {
+      audio.play();
+      btn.textContent = '⏸';
+      btn.setAttribute('aria-label', 'Pause');
+      const playingHTML =
+        `<span class="p-muted">▸&nbsp;</span>` +
+        `<span class="p-file">playing&nbsp;</span>` +
+        `<span class="p-cmd">${slug}.mp3</span>`;
+      _promptState.playing = playingHTML;
+      if (left) left.innerHTML = playingHTML;
+    } else {
+      audio.pause();
+    }
+  });
+
+  audio.addEventListener('pause', () => {
+    btn.textContent = '▶';
+    btn.setAttribute('aria-label', 'Play');
+    _promptState.playing = null;
+    if (left) left.innerHTML = _promptState.idle ?? '';
+  });
+
+  audio.addEventListener('ended', () => {
+    btn.textContent = '▶';
+    btn.setAttribute('aria-label', 'Play');
+    _promptState.playing = null;
+    setProgress(0);
+    scrubber.value = 0;
+    current.textContent = '0:00';
+    if (left) left.innerHTML = _promptState.idle ?? '';
+  });
+
+  // ── SCRUBBER SYNC ──
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    scrubber.value = audio.currentTime;
+    current.textContent = fmt(audio.currentTime);
+    setProgress((audio.currentTime / audio.duration) * 100);
+  });
+
+  scrubber.addEventListener('input', () => {
+    audio.currentTime = +scrubber.value;
+    current.textContent = fmt(+scrubber.value);
+    setProgress((+scrubber.value / audio.duration) * 100);
+  });
+}
+
 // Auto-initialise on every page that includes this script.
-// initReadTime must run before initTerms() (called by each article's
-// inline script) so the idleHTML snapshot already includes read time.
+// Order matters: initReadTime must run before initTerms() (called by
+// each article's inline script) so the idleHTML snapshot includes read time.
 initReadTime();
 initTOC();
+initAudioPlayer();
