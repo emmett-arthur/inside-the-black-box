@@ -167,7 +167,7 @@ function initAudioPlayer() {
   const slug = titleText.replace(/\.md$/, '');
   if (!slug || slug === 'black_box.sh') return;
 
-  const audioUrl = `/audio/${slug}.mp3`;
+  const audioUrl = `audio/${slug}.mp3`;
 
   fetch(audioUrl, { method: 'HEAD' })
     .then(res => { if (res.ok) _buildPlayer(slug, audioUrl, lede); })
