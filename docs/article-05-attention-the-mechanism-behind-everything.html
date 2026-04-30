@@ -255,9 +255,9 @@
 
   <h2>The problem no one had solved</h2>
 
-  <p>Before transformers, the dominant approach to processing language was the recurrent neural network. An RNN reads a sequence one token at a time, left to right, maintaining a hidden state — a fixed-size bundle of numbers that carries information forward as it moves through the sequence. Each new token updates that bundle based on what came before.</p>
+  <p>Before transformers, the dominant approach to processing language was the recurrent neural network. An RNN reads a sequence one token at a time, left to right, maintaining a hidden state, a fixed-size bundle of numbers that carries information forward as it moves through the sequence. Each new token updates that bundle based on what came before.</p>
 
-  <p>The problem is that bundle has a fixed size. It has to compress everything the model has read so far into the same number of dimensions, regardless of how long the sequence is. Read ten tokens, the bundle carries ten tokens worth of context. Read a thousand tokens, it still has the same size — which means earlier information gets increasingly compressed, overwritten, and eventually lost.</p>
+  <p>The problem is that bundle has a fixed size. It has to compress everything the model has read so far into the same number of dimensions, regardless of how long the sequence is. Read ten tokens, the bundle carries ten tokens worth of context. Read a thousand tokens, it still has the same size, which means earlier information gets increasingly compressed, overwritten, and eventually lost.</p>
 
   <p>By the time an RNN reaches the end of a long sentence, the beginning has been diluted across hundreds of updates. The model can still see the recent past clearly. The distant past has become a blur.</p>
 
@@ -475,8 +475,8 @@
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this picture</div>
     <p><strong>The "every token looks at every other token" framing is accurate but it obscures a real cost.</strong> Attention scales quadratically with sequence length, meaning double the number of tokens and you roughly quadruple the computation required. This is why <span class="term" data-def="The amount of text a model can process at once. Everything outside the window is invisible during that interaction.">context windows</span> have limits: at some point the computation becomes prohibitively expensive, and significant research effort has gone into making attention more efficient for very long sequences.</p>
-    <p><strong>The heads-as-specialists framing — "this head tracks grammar, that one tracks coreference" — is a useful intuition but an oversimplification.</strong> Attention heads do not have clean, human-interpretable roles. Researchers have found heads that appear to specialise, but most heads perform computations that resist tidy description. The specialisation is real but messier than the diagram suggests.</p>
-    <p><strong>The scores-as-understanding framing is the deepest simplification.</strong> A high attention score between "it" and "trophy" means the model has learned that this connection is statistically useful for predicting what comes next — not that it has resolved the coreference the way a human reader does. The behaviour looks like understanding. Whether it constitutes understanding is a harder question, and one this article cannot settle.</p>
+    <p><strong>The heads-as-specialists framing, "this head tracks grammar, that one tracks coreference," is a useful intuition but an oversimplification.</strong> Attention heads do not have clean, human-interpretable roles. Researchers have found heads that appear to specialise, but most heads perform computations that resist tidy description. The specialisation is real but messier than the diagram suggests.</p>
+    <p><strong>The scores-as-understanding framing is the deepest simplification.</strong> A high attention score between "it" and "trophy" means the model has learned that this connection is statistically useful for predicting what comes next, not that it has resolved the coreference the way a human reader does. The behaviour looks like understanding. Whether it constitutes understanding is a harder question, and one this article cannot settle.</p>
   </div>
 
   <div class="next-article">

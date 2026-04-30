@@ -238,8 +238,6 @@
   <h1>How a Network Learns: Backprop &amp; Gradient Descent</h1>
   <p class="lede">Every neural network starts out completely wrong. Here is the surprisingly simple idea that fixes it.</p>
 
-  <p>In the last article we established what a neural network is: a function with billions of weights that maps inputs to outputs. What we didn't answer is how those weights get their values. The answer is training — and it starts with the network being completely, embarrassingly wrong.</p>
-
   <h2>The untrained network</h2>
 
   <p>When a neural network is first created, its weights are initialised randomly. There is no knowledge in them, just noise. Feed it any input and it will produce a meaningless output. The network is not broken. It simply has not learned anything yet.</p>
@@ -256,7 +254,7 @@
 
   <h2>Labelled data and the training signal</h2>
 
-  <p>To train the network we need examples — lots of them. Each example is a pair: a set of inputs (the four features of a house) and a label (its actual sale price). We might have 100,000 such pairs from real transactions.</p>
+  <p>To train the network we need examples, lots of them. Each example is a pair: a set of inputs (the four features of a house) and a label (its actual sale price). We might have 100,000 such pairs from real transactions.</p>
 
   <p>Training works by feeding the network one example at a time, letting it make a prediction, then comparing that prediction to the real answer. The gap between prediction and reality is the training signal. Everything that follows is about using that signal to make the weights better.</p>
 
@@ -264,7 +262,7 @@
 
   <p>We need a single number that captures how wrong the prediction was. That number is called the <strong>loss</strong>. The formula varies, but the intuition is always the same: the bigger the gap between prediction and reality, the higher the loss. A perfect prediction produces a loss of zero.</p>
 
-  <p>The goal of all training is to minimise the loss across the entire dataset. Every other mechanism — gradient descent, backpropagation, learning rate — exists in service of this one objective.</p>
+  <p>The goal of all training is to minimise the loss across the entire dataset. Every other mechanism, gradient descent, backpropagation, learning rate, exists in service of this one objective.</p>
 
   <div class="example-thread">
     <div class="label">Running example — the loss</div>
@@ -277,7 +275,7 @@
 
   <p>We know the prediction was €333,000 wrong. But the network has dozens of weights, the one connecting "bedrooms" to the hidden layer, the one for "location," the one for "size," and so on. Which of them actually caused the error? And by how much?</p>
 
-  <p>Backpropagation is the algorithm that answers this. It works backwards through the network from the loss — using the <span class="term" data-def="A calculus identity that lets you compute how a change deep in the network affects the final loss. The mathematical engine behind backpropagation.">chain rule</span> from calculus — calculating how much each individual weight contributed to the mistake. One backwards pass, all weights assessed simultaneously.</p>
+  <p>Backpropagation is the algorithm that answers this. It works backwards through the network from the loss, using the <span class="term" data-def="A calculus identity that lets you compute how a change deep in the network affects the final loss. The mathematical engine behind backpropagation.">chain rule</span> from calculus, calculating how much each individual weight contributed to the mistake. One backwards pass, all weights assessed simultaneously.</p>
 
   <div class="mac-window">
     <div class="mac-titlebar">
@@ -433,18 +431,14 @@
 
   <p>Our house price model might train on 100,000 examples over a few epochs, taking minutes on a laptop. Training GPT-4 involved trillions of tokens, thousands of GPUs, and ran for months. The algorithm is identical. Only the scale differs.</p>
 
-  <div class="callout">
-    <strong>The key insight:</strong> There is no magic in training. It is a loop: predict, measure wrongness, run backprop to assign blame, use gradient descent to nudge every weight, repeat. What produces intelligence is running this loop billions of times with enough data and enough parameters.
-  </div>
-
   <h2>Where this picture breaks down</h2>
 
   <div class="breaks">
     <div class="breaks-title">⚠ Limitations of this picture</div>
-    <p><strong>Real networks have billions of weights, not four.</strong> The tables above show four input weights for clarity. In practice a single layer might have millions of connections, and backprop computes gradients for all of them simultaneously.</p>
-    <p><strong>The loss landscape is not smooth.</strong> Real training also involves cliffs, plateaus, and <span class="term" data-def="A point where every small weight change makes the loss worse, even if better solutions exist elsewhere. Large modern networks rarely get badly stuck.">local minima</span>. Modern training uses tricks — <span class="term" data-def="A training technique that carries a fraction of the previous weight update into the next step. Helps training move through flat regions and avoid oscillating.">momentum</span>, adaptive learning rates, <span class="term" data-def="A regularisation technique that gradually shrinks all weights during training. Prevents any single weight from dominating and reduces overfitting.">weight decay</span> — to navigate this. Gradient descent in its pure form is rarely used alone.</p>
-    <p><strong>Training doesn't find the global minimum.</strong> Models converge to "good enough" solutions, not optimal ones. For very large models, good enough turns out to be remarkably capable.</p>
-    <p><strong>The numbers here are illustrative.</strong> Actual weight values, error signals, and nudges in real networks are not this legible. They are high-dimensional vectors, meaningful to the maths, not to human inspection.</p>
+    <p>The tables above show four input weights for clarity. In practice a single layer might have millions of connections, and backprop computes gradients for all of them simultaneously.</p>
+    <p>Real training also involves cliffs, plateaus, and <span class="term" data-def="A point where every small weight change makes the loss worse, even if better solutions exist elsewhere. Large modern networks rarely get badly stuck.">local minima</span>. Modern training uses tricks, <span class="term" data-def="A training technique that carries a fraction of the previous weight update into the next step. Helps training move through flat regions and avoid oscillating.">momentum</span>, adaptive learning rates, <span class="term" data-def="A regularisation technique that gradually shrinks all weights during training. Prevents any single weight from dominating and reduces overfitting.">weight decay</span>, to navigate this. Gradient descent in its pure form is rarely used alone.</p>
+    <p>And training does not find the global minimum. Models converge to "good enough" solutions, not optimal ones. For very large models, good enough turns out to be remarkably capable.</p>
+    <p>Finally, the numbers here are illustrative. Actual weight values, error signals, and nudges in real networks are not this legible. They are high-dimensional vectors, meaningful to the maths, not to human inspection.</p>
   </div>
 
   <div class="next-article">
